@@ -50,34 +50,41 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- KPI Metrics Grid -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Card 1 -->
+        <!-- KPI & Advanced Analytics Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Total Transaksi -->
             <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
-                <p class="text-xs font-medium text-slate-500">Total Transaksi</p>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <p id="statCount" class="text-2xl font-semibold text-slate-900">0</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Transaksi</p>
+                <div class="mt-3 flex items-baseline justify-between">
+                    <p id="statCount" class="text-3xl font-bold text-slate-900">0</p>
+                    <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Records</span>
                 </div>
             </div>
 
-            <!-- Card 2 -->
+            <!-- Card 2: Total Volume Solar -->
             <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
-                <p id="statTxLabel" class="text-xs font-medium text-slate-500">Total Volume Solar</p>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <p id="statTxAmount" class="text-2xl font-semibold text-emerald-600">0 L</p>
+                <p id="statTxLabel" class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Volume Solar</p>
+                <div class="mt-3 flex items-baseline justify-between">
+                    <p id="statTxAmount" class="text-3xl font-bold text-emerald-600">0 L</p>
+                    <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">Liters</span>
                 </div>
             </div>
 
-            <!-- Card 3 -->
+            <!-- Card 3: Site Aktif & Material Dominan -->
             <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
-                <p class="text-xs font-medium text-slate-500">Site</p>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <p id="statActiveSite" class="text-2xl font-semibold text-slate-900 truncate">ALL SITE</p>
+                <div class="flex justify-between items-start">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Site Aktif</p>
+                    <span id="statActiveSite" class="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">ALL SITE</span>
+                </div>
+                <div class="mt-3">
+                    <p class="text-[11px] text-slate-400">Material Dominan:</p>
+                    <p id="dominantMaterial" class="text-sm font-bold text-slate-700 mt-0.5">-</p>
                 </div>
             </div>
 
-            <!-- Card 4 -->
-            <div class="bg-white p-3.5 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex items-center space-x-3.5">
+            <!-- Card 4: Animated Fuel Tank Widget -->
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex items-center space-x-4">
                 <div class="relative w-12 h-16 bg-slate-900 border-2 border-slate-700 rounded-md overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
                     <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-blue-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
                         <div class="absolute top-0 left-0 w-full h-1 bg-cyan-300 shadow-sm"></div>
@@ -86,8 +93,45 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Sisa Stok Fuel</p>
                     <p id="tankVolume" class="text-xl font-bold text-slate-900 truncate mt-1">0 L</p>
+                    <p class="text-[10px] text-slate-400 truncate">Est. Kapasitas Tangki</p>
                 </div>
             </div>
+
+        </section>
+
+        <!-- Secondary Analytics Row: Top 3 Units & Active PIC -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            <!-- Box 1 & 2: Top 3 Consuming Units -->
+            <div class="lg:col-span-2 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">🔥 Top 3 Unit Terboros (Konsumsi Tertinggi)</h3>
+                    <span class="text-[10px] text-slate-400">Berdasarkan Filter Aktif</span>
+                </div>
+                <div id="topUnitsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                    <!-- Diisi via Javascript -->
+                    <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                    <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                    <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                </div>
+            </div>
+
+            <!-- Box 3: PIC Teraktif -->
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">👤 PIC / Pelaksana Teraktif</h3>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded border border-slate-100">
+                            <span id="topPicName" class="text-xs font-bold text-slate-800">-</span>
+                            <span id="topPicCount" class="text-[11px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">0 Input</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-3 italic">*Pencatatan terbanyak pada periode ini.</p>
+            </div>
+
         </section>
 
         <!-- Filter Bar -->
@@ -204,17 +248,14 @@
             loadDashboardData();
         });
 
-        async function loadDashboardData() {
+        // Helper untuk membangun query dasar yang sama antar fungsi
+        function buildBaseQuery() {
             const site = document.getElementById('filterSite').value;
             const shift = document.getElementById('filterShift').value;
             const tx = document.getElementById('filterTx').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-            const limit = parseInt(document.getElementById('rowsPerPage').value);
 
-            document.getElementById('statActiveSite').innerText = site === 'ALL' ? 'ALL SITE' : site;
-
-            // Query dengan pagination & filter yang dioptimalkan
             let query = supabaseClient.from('fuel_logs').select('*', { count: 'exact' });
 
             if (site !== 'ALL') query = query.eq('site_name', site);
@@ -223,23 +264,126 @@
             if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
             if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
 
-            // Hitung range untuk pagination
+            return query;
+        }
+
+        async function loadDashboardData() {
+            const site = document.getElementById('filterSite').value;
+            const limit = parseInt(document.getElementById('rowsPerPage').value);
+
+            document.getElementById('statActiveSite').innerText = site === 'ALL' ? 'ALL SITE' : site;
+
+            // 1. Ambil data analitik secara keseluruhan (untuk Top Units, Material Dominan, PIC Aktif)
+            const { data: allFilteredData, error: analyticsError } = await buildBaseQuery().select('no_unit, fuel_amount, material_type, pic_name, receipt_issued');
+            
+            if (!analyticsError && allFilteredData) {
+                computeAndRenderAdvancedMetrics(allFilteredData);
+            }
+
+            // 2. Ambil data dengan pagination untuk tabel utama
             const from = (currentPage - 1) * limit;
             const to = from + limit - 1;
 
-            query = query.order('created_at', { ascending: false }).range(from, to);
-
-            const { data, count, error } = await query;
+            const { data, count, error } = await buildBaseQuery()
+                .order('created_at', { ascending: false })
+                .range(from, to);
 
             if (error) {
-                console.error("Error loading data:", error);
+                console.error("Error loading table data:", error);
                 return;
             }
 
             totalRows = count || 0;
             renderTable(data || []);
-            updateMetrics(data || []);
             updatePaginationInfo(limit);
+        }
+
+        // Fungsi Menghitung Analitik Lanjutan (Top 3 Units, Material Dominan, PIC Teraktif)
+        function computeAndRenderAdvancedMetrics(rows) {
+            let totalVol = 0;
+            const unitMap = {};
+            const materialMap = {};
+            const picMap = {};
+
+            rows.forEach(r => {
+                const vol = parseFloat(r.fuel_amount) || 0;
+                totalVol += vol;
+
+                // Hitung Material Dominan (Khususnya ISSUED)
+                if (r.material_type) {
+                    const mat = r.material_type.toUpperCase();
+                    materialMap[mat] = (materialMap[mat] || 0) + vol;
+                }
+
+                // Hitung Unit Terboros (Hanya untuk transaksi ISSUED / Pengeluaran)
+                if (r.no_unit && r.receipt_issued === 'ISSUED') {
+                    const unit = r.no_unit.trim().toUpperCase();
+                    unitMap[unit] = (unitMap[unit] || 0) + vol;
+                }
+
+                // Hitung PIC Teraktif
+                if (r.pic_name) {
+                    const pic = r.pic_name.trim();
+                    picMap[pic] = (picMap[pic] || 0) + 1;
+                }
+            });
+
+            // Update Total Volume di Card Atas
+            document.getElementById('statTxAmount').innerText = totalVol.toLocaleString('id-ID') + ' L';
+            document.getElementById('statCount').innerText = rows.length.toLocaleString('id-ID');
+
+            // Update Tangki Air
+            const tankPerc = Math.min(Math.max((totalVol / 10000) * 100, 5), 100);
+            document.getElementById('tankFluid').style.height = tankPerc + '%';
+            document.getElementById('tankVolume').innerText = totalVol.toLocaleString('id-ID') + ' L';
+
+            // Material Dominan
+            let dominantMatText = "-";
+            let maxMatVol = 0;
+            for (const [mat, vol] of Object.entries(materialMap)) {
+                if (vol > maxMatVol) {
+                    maxMatVol = vol;
+                    dominantMatText = `${mat} (${vol.toLocaleString('id-ID')} L)`;
+                }
+            }
+            document.getElementById('dominantMaterial').innerText = dominantMatText;
+
+            // Top 3 Consuming Units
+            const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            const topUnitsContainer = document.getElementById('topUnitsContainer');
+            topUnitsContainer.innerHTML = "";
+
+            if (sortedUnits.length === 0) {
+                topUnitsContainer.innerHTML = `<div class="col-span-3 bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Belum ada data unit terpakai (Issued) pada filter ini.</div>`;
+            } else {
+                sortedUnits.forEach(([unit, vol], index) => {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const bgColors = ['bg-amber-50 border-amber-200 text-amber-900', 'bg-slate-100 border-slate-200 text-slate-800', 'bg-orange-50 border-orange-200 text-orange-900'];
+                    
+                    const card = document.createElement('div');
+                    card.className = `p-2.5 rounded border ${bgColors[index] || 'bg-slate-50 border-slate-200'} flex flex-col justify-between`;
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold">${medals[index] || `#${index+1}`} ${unit}</span>
+                            <span class="text-[10px] font-mono opacity-75">Rangking ${index+1}</span>
+                        </div>
+                        <p class="text-sm font-extrabold mt-2 font-mono">${vol.toLocaleString('id-ID')} <span class="text-[10px] font-normal">Liter</span></p>
+                    `;
+                    topUnitsContainer.appendChild(card);
+                });
+            }
+
+            // Top PIC
+            let topPic = "-";
+            let maxPicCount = 0;
+            for (const [pic, count] of Object.entries(picMap)) {
+                if (count > maxPicCount) {
+                    maxPicCount = count;
+                    topPic = pic;
+                }
+            }
+            document.getElementById('topPicName').innerText = topPic;
+            document.getElementById('topPicCount').innerText = maxPicCount + ' Input';
         }
 
         function renderTable(rows) {
@@ -277,17 +421,6 @@
             });
         }
 
-        function updateMetrics(rows) {
-            document.getElementById('statCount').innerText = totalRows.toLocaleString('id-ID');
-            const totalVolume = rows.reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
-            document.getElementById('statTxAmount').innerText = totalVolume.toLocaleString('id-ID') + ' L';
-            
-            // Simulasi Tangki
-            const percentage = Math.min(Math.max((totalVolume / 10000) * 100, 5), 100);
-            document.getElementById('tankFluid').style.height = percentage + '%';
-            document.getElementById('tankVolume').innerText = totalVolume.toLocaleString('id-ID') + ' L';
-        }
-
         function updatePaginationInfo(limit) {
             const start = totalRows === 0 ? 0 : (currentPage - 1) * limit + 1;
             const end = Math.min(currentPage * limit, totalRows);
@@ -318,7 +451,6 @@
 
         function exportToExcel() {
             const wb = XLSX.utils.book_new();
-            // Ekspor data tabel ke excel
             const ws = XLSX.utils.table_to_sheet(document.querySelector("table"));
             XLSX.utils.book_append_sheet(wb, ws, "Fuel Logs");
             XLSX.writeFile(wb, "Fuel_Monitoring_Report.xlsx");
