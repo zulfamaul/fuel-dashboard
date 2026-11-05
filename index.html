@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Monitoring System - PT Bima Nusa Internasional</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Animasi Gelombang Tangki Fuel */
+        @keyframes wave {
+            0% { transform: translateX(0) translateZ(0) scaleY(1); }
+            50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+            100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+        }
+        .wave-animation {
+            animation: wave 3s linear infinite;
+        }
+
+        /* Warna Biru Tua Pekat / Dark Navy Khas BNI */
+        .border-t-bni-navy {
+            border-top-color: #0f172a !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+
+    <!-- Top Navigation Header dengan Border Merah Khas BNI (2px) -->
+    <header class="bg-white border-b-2 border-red-600 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand / Logo -->
+                <div class="flex items-center space-x-3">
+                    <img src="./logo.png" alt="BNI Logo" class="h-8 w-auto object-contain" onerror="this.onerror=null; this.src='logo.PNG';">
+                    <div class="h-5 w-px bg-slate-200"></div>
+                    <div>
+                        <h1 class="text-sm font-bold text-slate-900 tracking-tight">Fuel Monitoring System</h1>
+                        <p class="text-[11px] text-slate-500">PT Bima Nusa Internasional</p>
+                    </div>
+                </div>
+
+                <!-- Status Indicator -->
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                        Realtime Moni
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- KPI Metrics Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Total Transaksi -->
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
+                <p class="text-xs font-medium text-slate-500">Total Transaksi</p>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <p id="statCount" class="text-2xl font-semibold text-slate-900">0</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Dinamis Sesuai Jenis Filter TX -->
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
+                <p id="statTxLabel" class="text-xs font-medium text-slate-500">Total Volume Solar</p>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <p id="statTxAmount" class="text-2xl font-semibold text-emerald-600">0 L</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Site Aktif -->
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
+                <p class="text-xs font-medium text-slate-500">Site</p>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <p id="statActiveSite" class="text-2xl font-semibold text-slate-900 truncate">ALL SITE</p>
+                </div>
+            </div>
+
+            <!-- Card 4: Animated Fuel Tank Widget -->
+            <div class="bg-white p-3.5 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex items-center space-x-3.5">
+                <!-- Visual Tangki -->
+                <div class="relative w-12 h-16 bg-slate-900 border-2 border-slate-700 rounded-md overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
+                    <!-- Penanda Garis Level Tangki -->
+                    <div class="absolute inset-0 flex flex-col justify-between p-1 z-10 opacity-30 pointer-events-none">
+                        <div class="w-full h-px bg-white"></div>
+                        <div class="w-full h-px bg-white"></div>
+                        <div class="w-full h-px bg-white"></div>
+                    </div>
+                    <!-- Cairan Air Cyan/Biru dengan Animasi Wave -->
+                    <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-blue-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-cyan-300 shadow-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Informasi Sisa Stok -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Sisa Stok fuel</p>
+                    <p id="tankVolume" class="text-xl font-bold text-slate-900 truncate mt-1">0 L</p>
+                    <p class="text-[10px] text-slate-400 truncate mt-0.5"></p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Filter Bar & Actions -->
+        <section class="bg-white p-3 rounded-lg border border-slate-200 border-t-2 border-t-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Filters Group -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Date Filter -->
+                <div class="flex items-center space-x-1.5 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200">
+                    <span class="text-xs font-medium text-slate-500">Tanggal:</span>
+                    <input type="date" id="startDate" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                    <span class="text-xs text-slate-400">s/d</span>
+                    <input type="date" id="endDate" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                    <button onclick="resetDateFilter()" title="Reset Tanggal" class="text-xs text-slate-400 hover:text-slate-600 px-1 font-bold">✕</button>
+                </div>
+
+                <!-- Site Filter -->
+                <div class="flex items-center space-x-1.5">
+                    <label for="filterSite" class="text-xs font-medium text-slate-500">Site:</label>
+                    <select id="filterSite" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none focus:border-slate-400">
+                        <option value="ALL">All Site</option>
+                        <option value="SSB">SSB</option>
+                        <option value="KBB">KBB</option>
+                        <option value="IWACO">IWACO</option>
+                        <option value="KDC">KDC</option>
+                    </select>
+                </div>
+
+                <!-- Shift Filter -->
+                <div class="flex items-center space-x-1.5">
+                    <label for="filterShift" class="text-xs font-medium text-slate-500">Shift:</label>
+                    <select id="filterShift" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none focus:border-slate-400">
+                        <option value="ALL">All Shift</option>
+                        <option value="Day">Day</option>
+                        <option value="Night">Night</option>
+                    </select>
+                </div>
+
+                <!-- TX Filter -->
+                <div class="flex items-center space-x-1.5">
+                    <label for="filterTx" class="text-xs font-medium text-slate-500">Transaction:</label>
+                    <select id="filterTx" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none focus:border-slate-400">
+                        <option value="ALL">All Trx</option>
+                        <option value="ISSUED">Issued</option>
+                        <option value="RECEIPT">Receipt</option>
+                        <option value="TRANSFER">Transfer</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Download Button (Icon Only) -->
+            <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded transition flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </button>
+        </section>
+
+        <!-- Table Data Section -->
+        <section class="bg-white border border-slate-200 border-t-2 border-t-slate-300 rounded-lg shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Riwayat Transaksi</h2>
+                <span class="text-[11px] text-slate-400">HO Monitoring Control</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+                        <tr>
+                            <th class="p-3">Waktu Input</th>
+                            <th class="p-3">Site</th>
+                            <th class="p-3">Shift</th>
+                            <th class="p-3">Storage</th>
+                            <th class="p-3">Transaksi</th>
+                            <th class="p-3">No Unit</th>
+                            <th class="p-3">Keterangan Unit</th>
+                            <th class="p-3">Material</th>
+                            <th class="p-3">Liter</th>
+                            <th class="p-3">HM Truck</th>
+                            <th class="p-3">Voucher</th>
+                            <th class="p-3">PIC</th>
+                            <th class="p-3 text-center">Evidence</th>
+                            <th class="p-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                        <tr>
+                            <td colspan="14" class="p-8 text-center text-slate-400">Memuat data transaksi...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Pagination Bar -->
+            <div class="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+                <div class="flex items-center space-x-2">
+                    <span>Tampilkan</span>
+                    <select id="rowsPerPageSelect" onchange="changeRowsPerPage()" class="bg-white border border-slate-200 text-xs font-medium text-slate-700 rounded px-2 py-1 outline-none">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30" selected>30</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span id="paginationInfo">Menampilkan 0 - 0 dari 0 data</span>
+                </div>
+
+                <div class="flex items-center space-x-1">
+                    <button id="prevBtn" onclick="prevPage()" class="px-3 py-1 bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition">
+                        &larr; Prev
+                    </button>
+                    <span id="pageIndicator" class="px-3 py-1 font-semibold text-slate-700">Halaman 1</span>
+                    <button id="nextBtn" onclick="nextPage()" class="px-3 py-1 bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition">
+                        Next &rarr;
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Evidence Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-2xl w-full p-5 relative shadow-xl border border-slate-200">
+            <button onclick="closeModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Evidence Transaksi</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 mb-2">Evidence HM Unit</p>
+                    <img id="modalImgHM" src="" class="w-full h-56 object-cover rounded-lg border border-slate-200 bg-slate-50" alt="Foto HM">
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 mb-2">Evidence Liter</p>
+                    <img id="modalImgLiter" src="" class="w-full h-56 object-cover rounded-lg border border-slate-200 bg-slate-50" alt="Foto Liter">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (CRUD Update) -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-xl border border-slate-200">
+            <button onclick="closeEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Edit Data Transaksi</h3>
+            
+            <form id="editForm" onsubmit="handleUpdate(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editId">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Site</label>
+                        <select id="editSiteName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                            <option value="SSB">SSB</option>
+                            <option value="KBB">KBB</option>
+                            <option value="IWACO">IWACO</option>
+                            <option value="KDC">KDC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Shift</label>
+                        <select id="editShift" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                            <option value="Day">Day</option>
+                            <option value="Night">Night</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Storage</label>
+                        <input type="text" id="editFuelStorage" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Transaction</label>
+                        <select id="editReceiptIssued" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                            <option value="ISSUED">ISSUED</option>
+                            <option value="RECEIPT">RECEIPT</option>
+                            <option value="TRANSFER">TRANSFER</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">No Unit</label>
+                        <input type="text" id="editNoUnit" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Keterangan Unit</label>
+                        <input type="text" id="editKeteranganUnit" placeholder="Khusus SSB..." class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Material Type</label>
+                        <input type="text" id="editMaterialType" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Jumlah (Liter)</label>
+                        <input type="number" step="any" id="editFuelAmount" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">HM Fuel Truck</label>
+                        <input type="text" id="editHmFuelTruck" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">No Voucher</label>
+                        <input type="text" id="editNoVoucher" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">PIC Name</label>
+                    <input type="text" id="editPicName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none focus:border-slate-400">
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-900 text-white font-semibold rounded hover:bg-blue-800 transition">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const SUPABASE_URL = "https://srygivwnsjyjmacwokix.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyNTgsImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let allLogs = [];
+        let currentlyFilteredLogs = [];
+
+        // State Pagination
+        let currentPage = 1;
+        let rowsPerPage = 30;
+
+        // Set Default Tanggal Filter ke Hari Ini Secara Realtime saat Halaman Dimuat
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
+        }
+
+        async function fetchLogs() {
+            const { data, error } = await supabaseClient
+                .from('fuel_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (error) {
+                console.error("Error fetching logs:", error);
+                return;
+            }
+
+            allLogs = data;
+            renderTable();
+        }
+
+        function resetDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            const filterSiteVal = document.getElementById('filterSite').value;
+            const filterShiftVal = document.getElementById('filterShift').value;
+            const filterTxVal = document.getElementById('filterTx').value;
+            const startDateVal = document.getElementById('startDate').value;
+            const endDateVal = document.getElementById('endDate').value;
+
+            const tbody = document.getElementById('logsTableBody');
+            
+            document.getElementById('statActiveSite').innerText = filterSiteVal === 'ALL' ? 'ALL SITE' : filterSiteVal;
+
+            // Filter Data Sesuai Pilihan Dropdown & Tanggal
+            currentlyFilteredLogs = allLogs.filter(item => {
+                const matchSite = (filterSiteVal === 'ALL') || (item.site_name === filterSiteVal);
+                
+                const itemShift = item.shift ? item.shift.toString().trim() : '';
+                const matchShift = (filterShiftVal === 'ALL') || (itemShift.toLowerCase() === filterShiftVal.toLowerCase());
+
+                const txType = item.receipt_issued ? item.receipt_issued.toString().trim().toUpperCase() : '';
+                const matchTx = (filterTxVal === 'ALL') || (txType === filterTxVal);
+
+                let matchDate = true;
+                if (item.created_at) {
+                    const itemDate = new Date(item.created_at);
+                    if (startDateVal) {
+                        const start = new Date(startDateVal);
+                        start.setHours(0, 0, 0, 0);
+                        if (itemDate < start) matchDate = false;
+                    }
+                    if (endDateVal) {
+                        const end = new Date(endDateVal);
+                        end.setHours(23, 59, 59, 999);
+                        if (itemDate > end) matchDate = false;
+                    }
+                }
+
+                return matchSite && matchShift && matchTx && matchDate;
+            });
+
+            // Update Jumlah Transaksi
+            document.getElementById('statCount').innerText = currentlyFilteredLogs.length;
+
+            // Update Kartu Statistik Jenis Transaksi Dinamis
+            const txLabel = document.getElementById('statTxLabel');
+            const txAmount = document.getElementById('statTxAmount');
+            
+            let totalVolume = 0;
+            if (filterTxVal === 'ISSUED') {
+                txLabel.innerText = "Total Solar Issued";
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'ISSUED')
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-rose-600";
+            } else if (filterTxVal === 'RECEIPT') {
+                txLabel.innerText = "Total Solar Receipt";
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'RECEIPT')
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-emerald-600";
+            } else if (filterTxVal === 'TRANSFER') {
+                txLabel.innerText = "Total Solar Transfer";
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'TRANSFER')
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-sky-600";
+            } else {
+                txLabel.innerText = "Total Volume Solar";
+                totalVolume = currentlyFilteredLogs
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-slate-900";
+            }
+            txAmount.innerText = `${totalVolume.toLocaleString('id-ID')} L`;
+
+            // HITUNG SISA STOK REALTIME KHUSUS DARI SITE YANG SEDANG DIPILIH
+            const siteLogsForStock = allLogs.filter(item => {
+                return (filterSiteVal === 'ALL') || (item.site_name === filterSiteVal);
+            });
+
+            const totalReceiptSite = siteLogsForStock
+                .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'RECEIPT')
+                .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+
+            const totalIssuedSite = siteLogsForStock
+                .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'ISSUED')
+                .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+
+            const remainingFuel = Math.max(0, totalReceiptSite - totalIssuedSite);
+
+            // Update Tampilan Volume Tangki & Visual Ketinggian Cairan
+            document.getElementById('tankVolume').innerText = `${remainingFuel.toLocaleString('id-ID')} L`;
+
+            let visualHeight = 0;
+            if (totalReceiptSite > 0) {
+                visualHeight = Math.min(100, Math.max(10, Math.round((remainingFuel / totalReceiptSite) * 100)));
+            } else if (remainingFuel > 0) {
+                visualHeight = 50;
+            }
+            document.getElementById('tankFluid').style.height = `${visualHeight}%`;
+
+            // LOGIKA PAGINATION
+            const totalItems = currentlyFilteredLogs.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
+
+            const paginatedLogs = currentlyFilteredLogs.slice(startIndex, endIndex);
+
+            // Update UI Informasi Pagination
+            document.getElementById('paginationInfo').innerText = totalItems > 0 
+                ? `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalItems} data`
+                : `Menampilkan 0 data`;
+            
+            document.getElementById('pageIndicator').innerText = `Halaman ${currentPage} dari ${totalPages}`;
+            document.getElementById('prevBtn').disabled = (currentPage === 1);
+            document.getElementById('nextBtn').disabled = (currentPage === totalPages || totalItems === 0);
+
+            // Render Baris Tabel
+            if (paginatedLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = paginatedLogs.map((log) => {
+                const dateObj = new Date(log.created_at);
+                const timeStr = dateObj.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                
+                const tx = log.receipt_issued ? log.receipt_issued.toString().trim().toUpperCase() : '';
+                let badgeStyle = "bg-slate-100 text-slate-600";
+                if (tx === 'ISSUED') badgeStyle = "bg-rose-50 text-rose-700 border border-rose-200";
+                if (tx === 'RECEIPT') badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                if (tx === 'TRANSFER') badgeStyle = "bg-sky-50 text-sky-700 border border-sky-200";
+
+                const shiftVal = log.shift || '-';
+                let shiftStyle = "bg-slate-100 text-slate-600";
+                if (shiftVal.toLowerCase() === 'day') shiftStyle = "bg-amber-50 text-amber-700 border border-amber-200";
+                if (shiftVal.toLowerCase() === 'night') shiftStyle = "bg-indigo-50 text-indigo-700 border border-indigo-200";
+
+                const keteranganVal = log.keterangan_unit ? log.keterangan_unit : '-';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 text-slate-500 whitespace-nowrap">${timeStr}</td>
+                        <td class="p-3 font-semibold text-slate-900">${log.site_name || '-'}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium ${shiftStyle}">
+                                ${shiftVal}
+                            </span>
+                        </td>
+                        <td class="p-3 text-slate-600">${log.fuel_storage || '-'}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeStyle}">
+                                ${tx || '-'}
+                            </span>
+                        </td>
+                        <td class="p-3 font-medium text-slate-800">${log.no_unit || '-'}</td>
+                        <td class="p-3 text-slate-600 italic">${keteranganVal}</td>
+                        <td class="p-3 text-slate-600">${log.material_type || '-'}</td>
+                        <td class="p-3 font-semibold text-slate-900">${log.fuel_amount || 0} L</td>
+                        <td class="p-3 text-slate-600 font-mono text-[11px]">${log.hm_fuel_truck || '-'}</td>
+                        <td class="p-3 text-slate-500">${log.no_voucher || '-'}</td>
+                        <td class="p-3 text-slate-700">${log.pic_name || '-'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="openModal('${log.evidence_hm_url}', '${log.evidence_liter_url}')" class="text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 text-[11px] font-medium px-2.5 py-1 rounded transition border border-slate-200">
+                                Lihat Foto
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                       
