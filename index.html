@@ -95,14 +95,14 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex items-center space-x-1.5 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200">
                     <span class="text-xs font-medium text-slate-500">Tanggal:</span>
-                    <input type="date" id="startDate" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                    <input type="date" id="startDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
                     <span class="text-xs text-slate-400">s/d</span>
-                    <input type="date" id="endDate" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                    <input type="date" id="endDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
                     <button onclick="resetDateFilter()" class="text-xs text-slate-400 hover:text-slate-600 px-1 font-bold">✕</button>
                 </div>
                 <div class="flex items-center space-x-1.5">
                     <label for="filterSite" class="text-xs font-medium text-slate-500">Site:</label>
-                    <select id="filterSite" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
+                    <select id="filterSite" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
                         <option value="ALL">All Site</option>
                         <option value="SSB">SSB</option>
                         <option value="KBB">KBB</option>
@@ -112,7 +112,7 @@
                 </div>
                 <div class="flex items-center space-x-1.5">
                     <label for="filterShift" class="text-xs font-medium text-slate-500">Shift:</label>
-                    <select id="filterShift" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
+                    <select id="filterShift" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
                         <option value="ALL">All Shift</option>
                         <option value="Day">Day</option>
                         <option value="Night">Night</option>
@@ -120,7 +120,7 @@
                 </div>
                 <div class="flex items-center space-x-1.5">
                     <label for="filterTx" class="text-xs font-medium text-slate-500">Transaction:</label>
-                    <select id="filterTx" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
+                    <select id="filterTx" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded px-2.5 py-1.5 outline-none">
                         <option value="ALL">All Trx</option>
                         <option value="ISSUED">Issued</option>
                         <option value="RECEIPT">Receipt</option>
@@ -163,14 +163,166 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination Bar -->
+            <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+                <div class="flex items-center space-x-2">
+                    <span>Tampilkan</span>
+                    <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-white border border-slate-200 rounded px-2 py-1 outline-none">
+                        <option value="15">15</option>
+                        <option value="30" selected>30</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span id="paginationInfo">Memuat data...</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button onclick="prevPage()" id="prevBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50">Prev</button>
+                    <span id="pageIndicator" class="px-2 font-medium">1</span>
+                    <button onclick="nextPage()" id="nextBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50">Next</button>
+                </div>
+            </div>
         </section>
     </main>
 
+    <!-- Modal Gambar Evidence -->
+    <div id="imageModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-3 max-w-lg w-full relative">
+            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-500 font-bold">✕</button>
+            <img id="modalImg" src="" class="w-full h-auto rounded" alt="Evidence">
+        </div>
+    </div>
+
     <script>
-        // Supabase credentials placeholder atau sesuaikan dengan project abang
         const SUPABASE_URL = "https://srygivwnsjyjmacwokix.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyNTgsImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentPage = 1;
+        let totalRows = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDashboardData();
+        });
+
+        async function loadDashboardData() {
+            const site = document.getElementById('filterSite').value;
+            const shift = document.getElementById('filterShift').value;
+            const tx = document.getElementById('filterTx').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const limit = parseInt(document.getElementById('rowsPerPage').value);
+
+            document.getElementById('statActiveSite').innerText = site === 'ALL' ? 'ALL SITE' : site;
+
+            // Query dengan pagination & filter yang dioptimalkan
+            let query = supabaseClient.from('fuel_logs').select('*', { count: 'exact' });
+
+            if (site !== 'ALL') query = query.eq('site_name', site);
+            if (shift !== 'ALL') query = query.eq('shift', shift);
+            if (tx !== 'ALL') query = query.eq('receipt_issued', tx);
+            if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
+            if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+
+            // Hitung range untuk pagination
+            const from = (currentPage - 1) * limit;
+            const to = from + limit - 1;
+
+            query = query.order('created_at', { ascending: false }).range(from, to);
+
+            const { data, count, error } = await query;
+
+            if (error) {
+                console.error("Error loading data:", error);
+                return;
+            }
+
+            totalRows = count || 0;
+            renderTable(data || []);
+            updateMetrics(data || []);
+            updatePaginationInfo(limit);
+        }
+
+        function renderTable(rows) {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = "";
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center text-slate-400">Tidak ada data transaksi ditemukan.</td></tr>`;
+                return;
+            }
+
+            rows.forEach(row => {
+                const dateStr = new Date(row.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-[11px] text-slate-500">${dateStr}</td>
+                    <td class="p-3 font-semibold">${row.site_name || '-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">${row.shift || '-'}</span></td>
+                    <td class="p-3">${row.fuel_storage || '-'}</td>
+                    <td class="p-3"><span class="font-bold ${row.receipt_issued === 'ISSUED' ? 'text-red-600' : 'text-emerald-600'}">${row.receipt_issued || '-'}</span></td>
+                    <td class="p-3 font-mono font-medium">${row.no_unit || '-'}</td>
+                    <td class="p-3 text-slate-500">${row.unit_remark || '-'}</td>
+                    <td class="p-3">${row.material_type || '-'}</td>
+                    <td class="p-3 font-bold">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
+                    <td class="p-3 font-mono">${row.hm_fuel_truck || '-'}</td>
+                    <td class="p-3 font-mono">${row.no_voucher || '-'}</td>
+                    <td class="p-3">${row.pic_name || '-'}</td>
+                    <td class="p-3 text-center space-x-1">
+                        ${row.evidence_hm_url ? `<button onclick="openModal('${row.evidence_hm_url}')" class="text-blue-600 hover:underline text-[11px]">HM</button>` : ''}
+                        ${row.evidence_liter_url ? `<button onclick="openModal('${row.evidence_liter_url}')" class="text-blue-600 hover:underline text-[11px]">Liter</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateMetrics(rows) {
+            document.getElementById('statCount').innerText = totalRows.toLocaleString('id-ID');
+            const totalVolume = rows.reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+            document.getElementById('statTxAmount').innerText = totalVolume.toLocaleString('id-ID') + ' L';
+            
+            // Simulasi Tangki
+            const percentage = Math.min(Math.max((totalVolume / 10000) * 100, 5), 100);
+            document.getElementById('tankFluid').style.height = percentage + '%';
+            document.getElementById('tankVolume').innerText = totalVolume.toLocaleString('id-ID') + ' L';
+        }
+
+        function updatePaginationInfo(limit) {
+            const start = totalRows === 0 ? 0 : (currentPage - 1) * limit + 1;
+            const end = Math.min(currentPage * limit, totalRows);
+            document.getElementById('paginationInfo').innerText = `Menampilkan ${start} - ${end} dari ${totalRows} data`;
+            document.getElementById('pageIndicator').innerText = currentPage;
+
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = end >= totalRows;
+        }
+
+        function nextPage() { currentPage++; loadDashboardData(); }
+        function prevPage() { if (currentPage > 1) { currentPage--; loadDashboardData(); } }
+        function resetDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            loadDashboardData();
+        }
+
+        function openModal(url) {
+            document.getElementById('modalImg').src = url;
+            document.getElementById('imageModal').classList.remove('hidden');
+            document.getElementById('imageModal').classList.add('flex');
+        }
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('imageModal').classList.remove('flex');
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            // Ekspor data tabel ke excel
+            const ws = XLSX.utils.table_to_sheet(document.querySelector("table"));
+            XLSX.utils.book_append_sheet(wb, ws, "Fuel Logs");
+            XLSX.writeFile(wb, "Fuel_Monitoring_Report.xlsx");
+        }
     </script>
 </body>
 </html>
