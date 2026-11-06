@@ -172,7 +172,7 @@
                     </select>
                 </div>
             </div>
-            <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded transition flex items-center justify-center">
+            <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded transition flex items-center justify-center shadow-xs">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             </button>
         </section>
@@ -180,7 +180,7 @@
         <!-- Table Section -->
         <section class="bg-white border border-slate-200 border-t-2 border-t-slate-300 rounded-lg shadow-sm overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Riwayat Transaksi</h2>
+                <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wider">RIWAYAT TRANSAKSI</h2>
                 <span class="text-[11px] text-slate-400">HO Monitoring Control</span>
             </div>
             <div class="overflow-x-auto">
@@ -200,10 +200,11 @@
                             <th class="p-3">Voucher</th>
                             <th class="p-3">PIC</th>
                             <th class="p-3 text-center">Evidence</th>
+                            <th class="p-3 text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                        <tr><td colspan="13" class="p-8 text-center text-slate-400">Memuat data transaksi...</td></tr>
+                        <tr><td colspan="14" class="p-8 text-center text-slate-400">Memuat data transaksi...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -212,7 +213,7 @@
             <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
                 <div class="flex items-center space-x-2">
                     <span>Tampilkan</span>
-                    <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-white border border-slate-200 rounded px-2 py-1 outline-none">
+                    <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-white border border-slate-200 rounded px-2 py-1 outline-none shadow-xs">
                         <option value="15">15</option>
                         <option value="30" selected>30</option>
                         <option value="50">50</option>
@@ -220,9 +221,9 @@
                     <span id="paginationInfo">Memuat data...</span>
                 </div>
                 <div class="flex items-center space-x-1">
-                    <button onclick="prevPage()" id="prevBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50">Prev</button>
+                    <button onclick="prevPage()" id="prevBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Prev</button>
                     <span id="pageIndicator" class="px-2 font-medium">1</span>
-                    <button onclick="nextPage()" id="nextBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50">Next</button>
+                    <button onclick="nextPage()" id="nextBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Next</button>
                 </div>
             </div>
         </section>
@@ -230,8 +231,8 @@
 
     <!-- Modal Gambar Evidence -->
     <div id="imageModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-3 max-w-lg w-full relative">
-            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-500 font-bold">✕</button>
+        <div class="bg-white rounded-lg p-3 max-w-lg w-full relative shadow-xl">
+            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-500 hover:text-slate-800 font-bold px-2 py-1">✕</button>
             <img id="modalImg" src="" class="w-full h-auto rounded" alt="Evidence">
         </div>
     </div>
@@ -338,7 +339,7 @@
             }
             document.getElementById('dominantMaterial').innerText = dominantMatText;
 
-            // Top 3 Consuming Unit (Tanpa tulisan rangking)
+            // Top 3 Consuming Unit
             const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
             const topUnitsContainer = document.getElementById('topUnitsContainer');
             topUnitsContainer.innerHTML = "";
@@ -348,7 +349,7 @@
             } else {
                 sortedUnits.forEach(([unit, vol], index) => {
                     const card = document.createElement('div');
-                    card.className = "bg-slate-50 p-3 rounded border border-slate-200 flex flex-col justify-between";
+                    card.className = "bg-slate-50 p-3 rounded border border-slate-200 flex flex-col justify-between shadow-xs";
                     card.innerHTML = `
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold text-slate-800">${unit}</span>
@@ -377,34 +378,43 @@
             tbody.innerHTML = "";
 
             if (rows.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center text-slate-400">Tidak ada data transaksi ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi ditemukan.</td></tr>`;
                 return;
             }
 
             rows.forEach(row => {
                 const dateStr = new Date(row.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+                const photoUrl = row.evidence_hm_url || row.evidence_liter_url || '';
+                
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition";
+                tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
                 tr.innerHTML = `
                     <td class="p-3 font-mono text-[11px] text-slate-500">${dateStr}</td>
-                    <td class="p-3 font-semibold">${row.site_name || '-'}</td>
+                    <td class="p-3 font-semibold text-slate-900">${row.site_name || '-'}</td>
                     <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">${row.shift || '-'}</span></td>
-                    <td class="p-3">${row.fuel_storage || '-'}</td>
-                    <td class="p-3"><span class="font-bold ${row.receipt_issued === 'ISSUED' ? 'text-red-600' : 'text-emerald-600'}">${row.receipt_issued || '-'}</span></td>
-                    <td class="p-3 font-mono font-medium">${row.no_unit || '-'}</td>
+                    <td class="p-3 text-slate-600">${row.fuel_storage || '-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.receipt_issued === 'ISSUED' ? 'bg-red-50 text-red-600 border border-red-200' : row.receipt_issued === 'TRANSFER' ? 'bg-sky-50 text-sky-600 border border-sky-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">${row.receipt_issued || '-'}</span></td>
+                    <td class="p-3 font-mono font-bold text-slate-900">${row.no_unit || '-'}</td>
                     <td class="p-3 text-slate-500">${row.unit_remark || '-'}</td>
-                    <td class="p-3">${row.material_type || '-'}</td>
-                    <td class="p-3 font-bold">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
-                    <td class="p-3 font-mono">${row.hm_fuel_truck || '-'}</td>
-                    <td class="p-3 font-mono">${row.no_voucher || '-'}</td>
-                    <td class="p-3">${row.pic_name || '-'}</td>
-                    <td class="p-3 text-center space-x-1">
-                        ${row.evidence_hm_url ? `<button onclick="openModal('${row.evidence_hm_url}')" class="text-blue-600 hover:underline text-[11px]">HM</button>` : ''}
-                        ${row.evidence_liter_url ? `<button onclick="openModal('${row.evidence_liter_url}')" class="text-blue-600 hover:underline text-[11px]">Liter</button>` : ''}
+                    <td class="p-3 font-medium text-slate-700">${row.material_type || '-'}</td>
+                    <td class="p-3 font-extrabold text-slate-900 font-mono">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
+                    <td class="p-3 font-mono text-slate-600">${row.hm_fuel_truck || '-'}</td>
+                    <td class="p-3 font-mono text-slate-500">${row.no_voucher || '-'}</td>
+                    <td class="p-3 font-medium text-slate-800">${row.pic_name || '-'}</td>
+                    <td class="p-3 text-center">
+                        ${photoUrl ? `<button onclick="openModal('${photoUrl}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View Photo</button>` : '<span class="text-slate-300">-</span>'}
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="editRecord('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-blue-600 bg-white hover:bg-blue-50 border border-blue-200 rounded shadow-xs transition">Edit</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function editRecord(id) {
+            // Pengalihan / Aksi Edit Transaksi
+            window.open(`https://app.ccobn.id?edit=${id}`, '_blank');
         }
 
         function updatePaginationInfo(limit) {
