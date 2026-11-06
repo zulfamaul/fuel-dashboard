@@ -20,7 +20,8 @@
             100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
         }
         .wave-animation { animation: wave 3s linear infinite; }
-        .border-t-bni-navy { border-top-color: #0f172a !important; }
+        .custom-border-red { border-top-color: #FF0000 !important; }
+        .custom-border-blue { border-top-color: #0000FF !important; }
     </style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen">
@@ -50,12 +51,12 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- KPI & Advanced Analytics Grid (Menggunakan Warna Asli BNI Navy) -->
+        <!-- KPI & Advanced Analytics Grid -->
         <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             
             <!-- Card 1: Total Transaksi -->
-            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Transaksi</p>
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-4 custom-border-blue shadow-sm flex flex-col justify-between">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Transaksi</p>
                 <div class="mt-3 flex items-baseline justify-between">
                     <p id="statCount" class="text-2xl font-semibold text-slate-900">0</p>
                     <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Records</span>
@@ -63,8 +64,8 @@
             </div>
 
             <!-- Card 2: Total Volume Solar -->
-            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
-                <p id="statTxLabel" class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Volume Solar</p>
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-4 custom-border-red shadow-sm flex flex-col justify-between">
+                <p id="statTxLabel" class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Volume Solar</p>
                 <div class="mt-3 flex items-baseline justify-between">
                     <p id="statTxAmount" class="text-2xl font-semibold text-emerald-600">0 L</p>
                     <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">Liters</span>
@@ -72,9 +73,9 @@
             </div>
 
             <!-- Card 3: Top volume fuel by Material -->
-            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-4 custom-border-blue shadow-sm flex flex-col justify-between">
                 <div class="flex justify-between items-start">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Top volume fuel by Material</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Top volume fuel by Material</p>
                     <span id="statActiveSite" class="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">ALL SITE</span>
                 </div>
                 <div class="mt-3">
@@ -84,7 +85,7 @@
             </div>
 
             <!-- Card 4: Sisa Stok Fuel (Tank Widget) -->
-            <div class="bg-white p-3.5 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex items-center space-x-3.5">
+            <div class="bg-white p-3.5 rounded-lg border border-slate-200 border-t-4 custom-border-red shadow-sm flex items-center space-x-3.5">
                 <div class="relative w-12 h-16 bg-slate-900 border-2 border-slate-700 rounded-md overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
                     <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-blue-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
                         <div class="absolute top-0 left-0 w-full h-1 bg-cyan-300 shadow-sm"></div>
@@ -98,11 +99,11 @@
 
         </section>
 
-        <!-- Secondary Analytics Row: Top 3 Consuming Unit & Pic / Pelaksana Teraktif -->
+        <!-- Secondary Analytics Row -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <!-- Box 1 & 2: Top 3 Consuming Unit -->
-            <div class="lg:col-span-2 bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm">
+            <div class="lg:col-span-2 bg-white p-4 rounded-lg border border-slate-200 border-t-4 custom-border-blue shadow-sm">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Top 3 Consuming Unit</h3>
                     <span class="text-[10px] text-slate-400">Berdasarkan Filter Aktif</span>
@@ -115,7 +116,7 @@
             </div>
 
             <!-- Box 3: Pic / Pelaksana Teraktif -->
-            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-2 border-t-bni-navy shadow-sm flex flex-col justify-between">
+            <div class="bg-white p-4 rounded-lg border border-slate-200 border-t-4 custom-border-red shadow-sm flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                         <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Pic / Pelaksana Teraktif</h3>
