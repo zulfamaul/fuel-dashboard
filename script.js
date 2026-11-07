@@ -1,341 +1,400 @@
-const SUPABASE_URL = "https://srygivwnsjyjmacwokix.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyNTgsImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let currentPage = 1;
-let totalRows = 0;
-let cachedFilteredDataForExcel = [];
-
-document.addEventListener("DOMContentLoaded", () => {
-    setDefaultDate();
-    loadDashboardData();
-    setInterval(loadDashboardData, 30000); // Polling real-time 30 detik
-});
-
-function setDefaultDate() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('startDate').value = today;
-    document.getElementById('endDate').value = today;
-}
-
-function buildBaseQuery() {
-    const site = document.getElementById('filterSite').value;
-    const shift = document.getElementById('filterShift').value;
-    const tx = document.getElementById('filterTx').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-
-    let query = supabaseClient.from('fuel_logs').select('*', { count: 'exact' });
-
-    if (site !== 'ALL') query = query.eq('site_name', site);
-    if (shift !== 'ALL') query = query.eq('shift', shift);
-    if (tx !== 'ALL') query = query.eq('receipt_issued', tx);
-    if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
-    if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
-
-    return query;
-}
-
-async function loadDashboardData() {
-    const site = document.getElementById('filterSite').value;
-    const limit = parseInt(document.getElementById('rowsPerPage').value);
-
-    document.getElementById('statActiveSite').innerText = site === 'ALL' ? 'ALL SITE' : site;
-
-    // Ambil data untuk analitik KPI secara efisien
-    const { data: allFilteredData, error: analyticsError } = await buildBaseQuery().select('no_unit, fuel_amount, material_type, pic_name, receipt_issued, fuel_storage, site_name, created_at');
-    
-    if (!analyticsError && allFilteredData) {
-        cachedFilteredDataForExcel = allFilteredData;
-        computeAndRenderAdvancedMetrics(allFilteredData);
-    }
-
-    // Server-side pagination untuk tabel utama agar ngebut
-    const from = (currentPage - 1) * limit;
-    const to = from + limit - 1;
-
-    const { data, count, error } = await buildBaseQuery()
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-    if (error) {
-        console.error("Error loading table data:", error);
-        return;
-    }
-
-    totalRows = count || 0;
-    renderTable(data || []);
-    updatePaginationInfo(limit);
-}
-
-function computeAndRenderAdvancedMetrics(rows) {
-    let totalVol = 0;
-    const unitMap = {};
-    const materialMap = {};
-    const picMap = {};
-
-    rows.forEach(r => {
-        const vol = parseFloat(r.fuel_amount) || 0;
-        totalVol += vol;
-
-        if (r.material_type) {
-            const mat = r.material_type.toUpperCase();
-            materialMap[mat] = (materialMap[mat] || 0) + vol;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Monitoring System - PT Bima Nusa Internasional</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        @keyframes wave {
+            0% { transform: translateX(0) translateZ(0) scaleY(1); }
+            50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+            100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
         }
-
-        if (r.no_unit && r.receipt_issued === 'ISSUED') {
-            const unit = r.no_unit.trim().toUpperCase();
-            unitMap[unit] = (unitMap[unit] || 0) + vol;
-        }
-
-        if (r.pic_name) {
-            const pic = r.pic_name.trim();
-            picMap[pic] = (picMap[pic] || 0) + 1;
-        }
-    });
-
-    document.getElementById('statTxAmount').innerText = totalVol.toLocaleString('id-ID') + ' L';
-    document.getElementById('statCount').innerText = rows.length.toLocaleString('id-ID');
-
-    // Kalkulasi Tangki Real-time
-    const totalReceipt = rows.filter(r => r.receipt_issued === 'RECEIPT').reduce((a, c) => a + (parseFloat(c.fuel_amount) || 0), 0);
-    const totalIssued = rows.filter(r => r.receipt_issued === 'ISSUED').reduce((a, c) => a + (parseFloat(c.fuel_amount) || 0), 0);
-    const remainingStock = Math.max(0, totalReceipt - totalIssued);
-
-    const tankPerc = totalReceipt > 0 ? Math.min(Math.max((remainingStock / totalReceipt) * 100, 5), 100) : 20;
-    document.getElementById('tankFluid').style.height = tankPerc + '%';
-    document.getElementById('tankVolume').innerText = remainingStock.toLocaleString('id-ID') + ' L';
-
-    // Material Dominan
-    let dominantMatText = "-";
-    let maxMatVol = 0;
-    for (const [mat, vol] of Object.entries(materialMap)) {
-        if (vol > maxMatVol) {
-            maxMatVol = vol;
-            dominantMatText = `${mat} (${vol.toLocaleString('id-ID')} L)`;
-        }
-    }
-    document.getElementById('dominantMaterial').innerText = dominantMatText;
-
-    // Top 3 Consuming Unit
-    const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    const topUnitsContainer = document.getElementById('topUnitsContainer');
-    topUnitsContainer.innerHTML = "";
-
-    if (sortedUnits.length === 0) {
-        topUnitsContainer.innerHTML = `<div class="col-span-3 bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Belum ada data unit terpakai (Issued) pada filter ini.</div>`;
-    } else {
-        sortedUnits.forEach(([unit, vol], index) => {
-            const card = document.createElement('div');
-            card.className = "bg-slate-50 p-3 rounded border border-slate-200 flex flex-col justify-between shadow-xs";
-            card.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-800">${unit}</span>
-                    <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center">${index+1}</span>
-                </div>
-                <p class="text-sm font-extrabold mt-2 font-mono text-slate-900">${vol.toLocaleString('id-ID')} <span class="text-[10px] font-normal text-slate-500">Liter</span></p>
-            `;
-            topUnitsContainer.appendChild(card);
-        });
-    }
-
-    // PIC Teraktif
-    let topPic = "-";
-    let maxPicCount = 0;
-    for (const [pic, count] of Object.entries(picMap)) {
-        if (count > maxPicCount) {
-            maxPicCount = count;
-            topPic = pic;
-        }
-    }
-    document.getElementById('topPicName').innerText = topPic;
-    document.getElementById('topPicCount').innerText = maxPicCount + ' Input';
-}
-
-function renderTable(rows) {
-    const tbody = document.getElementById('logsTableBody');
-    tbody.innerHTML = "";
-
-    if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi ditemukan.</td></tr>`;
-        return;
-    }
-
-    rows.forEach(row => {
-        const dateStr = new Date(row.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+        .wave-animation { animation: wave 3s linear infinite; }
+        /* Warna Aksen Konsisten */
+        .border-t-custom-blue { border-top-color: #000080 !important; }
+        .border-t-custom-red { border-top-color: #FF0000 !important; }
         
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
-        tr.innerHTML = `
-            <td class="p-3 font-mono text-[11px] text-slate-500">${dateStr}</td>
-            <td class="p-3 font-semibold text-slate-900">${row.site_name || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">${row.shift || '-'}</span></td>
-            <td class="p-3 text-slate-600">${row.fuel_storage || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.receipt_issued === 'ISSUED' ? 'bg-red-50 text-red-600 border border-red-200' : row.receipt_issued === 'TRANSFER' ? 'bg-sky-50 text-sky-600 border border-sky-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">${row.receipt_issued || '-'}</span></td>
-            <td class="p-3 font-mono font-bold text-slate-900">${row.no_unit || '-'}</td>
-            <td class="p-3 text-slate-500 italic">${row.keterangan_unit || '-'}</td>
-            <td class="p-3 font-medium text-slate-700">${row.material_type || '-'}</td>
-            <td class="p-3 font-extrabold text-slate-900 font-mono">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
-            <td class="p-3 font-mono text-slate-600">${row.hm_fuel_truck || '-'}</td>
-            <td class="p-3 font-mono text-slate-500">${row.no_voucher || '-'}</td>
-            <td class="p-3 font-medium text-slate-800">${row.pic_name || '-'}</td>
-            <td class="p-3 text-center">
-                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View Photo</button>
-            </td>
-            <td class="p-3 text-center">
-                <button onclick="openEditModal('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-blue-600 bg-white hover:bg-blue-50 border border-blue-200 rounded shadow-xs transition">Edit</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
+        /* Transisi Smooth untuk Toggle Sidebar */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        #mainWrapper { transition: margin-left 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex overflow-x-hidden">
 
-// Modal Dual Evidence
-function openModal(hmUrl, literUrl) {
-    const imgHm = document.getElementById('modalImgHm');
-    const noHm = document.getElementById('noImgHm');
-    if (hmUrl && hmUrl !== 'null') {
-        imgHm.src = hmUrl;
-        imgHm.classList.remove('hidden');
-        noHm.classList.add('hidden');
-    } else {
-        imgHm.classList.add('hidden');
-        noHm.classList.remove('hidden');
-    }
+    <!-- Sidebar Navigation (Kiri) -->
+    <aside id="sidebar" class="w-64 bg-slate-950 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-40 border-r border-slate-800 shadow-xl transform translate-x-0">
+        <!-- Brand / Logo Area -->
+        <div class="h-16 flex items-center px-6 border-b border-slate-800/80 bg-slate-900/50">
+            <div class="flex items-center space-x-3">
+                <img src="./BN.png" alt="BNI Logo" class="h-7 w-auto object-contain bg-white rounded p-0.5" onerror="this.onerror=null; this.src='logo.png';">
+                <div>
+                    <h1 class="text-xs font-bold text-white tracking-wider uppercase">Fuel Monitoring</h1>
+                    <p class="text-[10px] text-slate-400">PT Bima Nusa Internasional</p>
+                </div>
+            </div>
+        </div>
 
-    const imgLiter = document.getElementById('modalImgLiter');
-    const noLiter = document.getElementById('noImgLiter');
-    if (literUrl && literUrl !== 'null') {
-        imgLiter.src = literUrl;
-        imgLiter.classList.remove('hidden');
-        noLiter.classList.add('hidden');
-    } else {
-        imgLiter.classList.add('hidden');
-        noLiter.classList.remove('hidden');
-    }
+        <!-- Navigation Menu (Form Input Dihapus Sesuai Permintaan) -->
+        <div class="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-wider">Control Menu</p>
+            
+            <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-[#000080] text-white text-xs font-semibold shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                <span>Dashboard Utama</span>
+            </a>
+        </div>
 
-    document.getElementById('imageModal').classList.remove('hidden');
-    document.getElementById('imageModal').classList.add('flex');
-}
+        <!-- Sidebar Footer / Status -->
+        <div class="p-4 border-t border-slate-800 bg-slate-900/40">
+            <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Status Sistem</span>
+                <span class="flex items-center text-emerald-400 font-medium">
+                    <span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online
+                </span>
+            </div>
+        </div>
+    </aside>
 
-function closeModal() {
-    document.getElementById('imageModal').classList.add('hidden');
-    document.getElementById('imageModal').classList.remove('flex');
-}
+    <!-- Main Wrapper (Kanan, bergeser otomatis saat sidebar di-hide) -->
+    <div id="mainWrapper" class="flex-1 ml-64 flex flex-col min-h-screen">
 
-// Edit Modal Handler
-function openEditModal(id) {
-    const log = cachedFilteredDataForExcel.find(item => item.id == id);
-    if (!log) return;
+        <!-- Top Header Bar -->
+        <header class="bg-white border-b-2 border-[#FF0000] sticky top-0 z-30 shadow-xs">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <!-- Tombol Toggle Sidebar (Hide / Show) -->
+                        <button onclick="toggleSidebar()" title="Sembunyikan/Tampilkan Sidebar" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded">MONITORING CONTROL HO</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-slate-500">MoCo HO</span>
+                        <div class="w-8 h-8 rounded-full bg-[#000080] text-white flex items-center justify-center font-bold text-xs shadow-xs">HO</div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-    document.getElementById('editId').value = log.id;
-    document.getElementById('editSiteName').value = log.site_name || 'SSB';
-    document.getElementById('editShift').value = log.shift || 'Day';
-    document.getElementById('editFuelStorage').value = log.fuel_storage || '';
-    document.getElementById('editReceiptIssued').value = log.receipt_issued || 'ISSUED';
-    document.getElementById('editNoUnit').value = log.no_unit || '';
-    document.getElementById('editKeteranganUnit').value = log.keterangan_unit || '';
-    document.getElementById('editMaterialType').value = log.material_type || '';
-    document.getElementById('editFuelAmount').value = log.fuel_amount || 0;
-    document.getElementById('editHmFuelTruck').value = log.hm_fuel_truck || '';
-    document.getElementById('editNoVoucher').value = log.no_voucher || '';
-    document.getElementById('editPicName').value = log.pic_name || '';
+        <!-- Main Content Container -->
+        <main class="max-w-7xl w-full mx-auto px-6 py-6 space-y-6 flex-1">
 
-    document.getElementById('editModal').classList.remove('hidden');
-}
+            <!-- KPI Grid Atas (Garis Biru #000080 dengan Efek 3D Shadow) -->
+            <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1 -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Transaksi</p>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <p id="statCount" class="text-2xl font-bold text-slate-900">0</p>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Records</span>
+                    </div>
+                </div>
 
-function closeEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
+                <!-- Card 2 -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
+                    <p id="statTxLabel" class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Fuel Volume</p>
+                    <div class="mt-3 flex items-baseline justify-between">
+                        <p id="statTxAmount" class="text-2xl font-bold text-emerald-600">0 L</p>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">Liters</span>
+                    </div>
+                </div>
 
-async function handleUpdate(e) {
-    e.preventDefault();
-    const id = document.getElementById('editId').value;
-    const updatedData = {
-        site_name: document.getElementById('editSiteName').value,
-        shift: document.getElementById('editShift').value,
-        fuel_storage: document.getElementById('editFuelStorage').value,
-        receipt_issued: document.getElementById('editReceiptIssued').value,
-        no_unit: document.getElementById('editNoUnit').value,
-        keterangan_unit: document.getElementById('editKeteranganUnit').value,
-        material_type: document.getElementById('editMaterialType').value,
-        fuel_amount: parseFloat(document.getElementById('editFuelAmount').value) || 0,
-        hm_fuel_truck: document.getElementById('editHmFuelTruck').value,
-        no_voucher: document.getElementById('editNoVoucher').value,
-        pic_name: document.getElementById('editPicName').value
-    };
+                <!-- Card 3 -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Top volume fuel by Material</p>
+                        <span id="statActiveSite" class="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">ALL SITE</span>
+                    </div>
+                    <div class="mt-3">
+                        <p id="dominantMaterial" class="text-sm font-bold text-slate-800 truncate">-</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Distribusi material dominan</p>
+                    </div>
+                </div>
 
-    const { error } = await supabaseClient.from('fuel_logs').update(updatedData).eq('id', id);
+                <!-- Card 4 -->
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex items-center space-x-3.5">
+                    <div class="relative w-12 h-16 bg-slate-900 border-2 border-slate-700 rounded-md overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
+                        <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-blue-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-cyan-300 shadow-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Actual Fuel Stock</p>
+                        <p id="tankVolume" class="text-xl font-bold text-slate-900 truncate mt-1">0 L</p>
+                    </div>
+                </div>
 
-    if (error) {
-        alert("Gagal memperbarui data: " + error.message);
-        return;
-    }
+            </section>
 
-    alert("Data berhasil diperbarui!");
-    closeEditModal();
-    loadDashboardData();
-}
+            <!-- Analytics Row Bawah (Garis Merah #FF0000 dengan Efek 3D Shadow) -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                
+                <!-- Box 1: Top 3 Consuming Unit -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-red shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Top 3 Consuming Unit</h3>
+                        <span class="text-[10px] text-slate-400">Berdasarkan Filter Aktif</span>
+                    </div>
+                    <div id="topUnitsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                    </div>
+                </div>
 
-function updatePaginationInfo(limit) {
-    const start = totalRows === 0 ? 0 : (currentPage - 1) * limit + 1;
-    const end = Math.min(currentPage * limit, totalRows);
-    document.getElementById('paginationInfo').innerText = `Menampilkan ${start} - ${end} dari ${totalRows} data`;
-    document.getElementById('pageIndicator').innerText = currentPage;
+                <!-- Box 2: Pic / Pelaksana Teraktif -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-red shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Pic / Pelaksana Teraktif</h3>
+                        </div>
+                        <div class="mt-3 space-y-2">
+                            <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded border border-slate-100">
+                                <span id="topPicName" class="text-xs font-bold text-slate-800">-</span>
+                                <span id="topPicCount" class="text-[11px] font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">0 Input</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-3 italic">*Pencatatan terbanyak pada periode ini.</p>
+                </div>
 
-    document.getElementById('prevBtn').disabled = currentPage === 1;
-    document.getElementById('nextBtn').disabled = end >= totalRows;
-}
+            </section>
 
-function nextPage() { currentPage++; loadDashboardData(); }
-function prevPage() { if (currentPage > 1) { currentPage--; loadDashboardData(); } }
-function resetDateFilter() {
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-    currentPage = 1;
-    loadDashboardData();
-}
+            <!-- Filter Bar -->
+            <section class="bg-white p-3.5 rounded-xl border border-slate-200 border-t-2 border-t-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center space-x-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <span class="text-xs font-medium text-slate-500">Tanggal:</span>
+                        <input type="date" id="startDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                        <span class="text-xs text-slate-400">s/d</span>
+                        <input type="date" id="endDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                        <button onclick="resetDateFilter()" class="text-xs text-slate-400 hover:text-slate-600 px-1 font-bold">✕</button>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <label for="filterSite" class="text-xs font-medium text-slate-500">Site:</label>
+                        <select id="filterSite" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
+                            <option value="ALL">All Site</option>
+                            <option value="SSB">SSB</option>
+                            <option value="KBB">KBB</option>
+                            <option value="IWACO">IWACO</option>
+                            <option value="KDC">KDC</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <label for="filterShift" class="text-xs font-medium text-slate-500">Shift:</label>
+                        <select id="filterShift" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
+                            <option value="ALL">All Shift</option>
+                            <option value="Day">Day</option>
+                            <option value="Night">Night</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <label for="filterTx" class="text-xs font-medium text-slate-500">Transaction:</label>
+                        <select id="filterTx" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
+                            <option value="ALL">All Trx</option>
+                            <option value="ISSUED">Issued</option>
+                            <option value="RECEIPT">Receipt</option>
+                            <option value="TRANSFER">Transfer</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition flex items-center justify-center shadow-xs">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </button>
+            </section>
 
-function exportToExcel() {
-    if (cachedFilteredDataForExcel.length === 0) {
-        alert("Tidak ada data untuk diexport!");
-        return;
-    }
+            <!-- Table Section -->
+            <section class="bg-white border border-slate-200 border-t-2 border-t-slate-300 rounded-xl shadow-sm overflow-hidden">
+                <div class="px-5 py-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50/70">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">RIWAYAT TRANSAKSI</h2>
+                    <span class="text-[11px] text-slate-400 font-medium">HO Monitoring Control</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50/50 border-b border-slate-200 text-slate-500 font-medium">
+                            <tr>
+                                <th class="p-3">Waktu Input</th>
+                                <th class="p-3">Site</th>
+                                <th class="p-3">Shift</th>
+                                <th class="p-3">Storage</th>
+                                <th class="p-3">Transaksi</th>
+                                <th class="p-3">No Unit</th>
+                                <th class="p-3">Keterangan Unit</th>
+                                <th class="p-3">Material</th>
+                                <th class="p-3">Liter</th>
+                                <th class="p-3">HM Truck</th>
+                                <th class="p-3">Voucher</th>
+                                <th class="p-3">PIC</th>
+                                <th class="p-3 text-center">Evidence</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr><td colspan="14" class="p-8 text-center text-slate-400">Memuat data transaksi...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-    const excelData = cachedFilteredDataForExcel.map((log, index) => {
-        let tglStr = '-';
-        let jamStr = '-';
-        let bulanStr = '-';
+                <!-- Pagination Bar -->
+                <div class="px-5 py-3.5 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
+                    <div class="flex items-center space-x-2">
+                        <span>Tampilkan</span>
+                        <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-white border border-slate-200 rounded px-2 py-1 outline-none shadow-xs">
+                            <option value="15">15</option>
+                            <option value="30" selected>30</option>
+                            <option value="50">50</option>
+                        </select>
+                        <span id="paginationInfo">Memuat data...</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button onclick="prevPage()" id="prevBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Prev</button>
+                        <span id="pageIndicator" class="px-2 font-medium">1</span>
+                        <button onclick="nextPage()" id="nextBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Next</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
-        if (log.created_at) {
-            const d = new Date(log.created_at);
-            tglStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/\./g, '-');
-            jamStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
-            bulanStr = d.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase();
+    <!-- Modal Dual Evidence (HM & Liter) -->
+    <div id="imageModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-3xl w-full relative shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">TRANSACTION EVIDENCE</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 font-bold p-1 rounded-full bg-slate-100 hover:bg-slate-200 w-7 h-7 flex items-center justify-center transition">✕</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs font-semibold text-slate-600 mb-1.5">Evidence HM Unit</p>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 h-64 flex items-center justify-center shadow-inner">
+                        <img id="modalImgHm" src="" class="w-full h-full object-contain hidden" alt="Evidence HM">
+                        <span id="noImgHm" class="text-xs text-slate-400 italic">Tidak ada foto HM</span>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-600 mb-1.5">Evidence Liter</p>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 h-64 flex items-center justify-center shadow-inner">
+                        <img id="modalImgLiter" src="" class="w-full h-full object-contain hidden" alt="Evidence Liter">
+                        <span id="noImgLiter" class="text-xs text-slate-400 italic">Tidak ada foto Liter</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (CRUD Update) -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-xl border border-slate-200">
+            <button onclick="closeEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Edit Data Transaksi</h3>
+            
+            <form id="editForm" onsubmit="handleUpdate(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editId">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Site</label>
+                        <select id="editSiteName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                            <option value="SSB">SSB</option>
+                            <option value="KBB">KBB</option>
+                            <option value="IWACO">IWACO</option>
+                            <option value="KDC">KDC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Shift</label>
+                        <select id="editShift" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                            <option value="Day">Day</option>
+                            <option value="Night">Night</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Storage</label>
+                        <input type="text" id="editFuelStorage" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Transaction</label>
+                        <select id="editReceiptIssued" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                            <option value="ISSUED">ISSUED</option>
+                            <option value="RECEIPT">RECEIPT</option>
+                            <option value="TRANSFER">TRANSFER</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">No Unit</label>
+                        <input type="text" id="editNoUnit" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Keterangan Unit</label>
+                        <input type="text" id="editKeteranganUnit" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Material Type</label>
+                        <input type="text" id="editMaterialType" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Jumlah (Liter)</label>
+                        <input type="number" step="any" id="editFuelAmount" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">HM Fuel Truck</label>
+                        <input type="text" id="editHmFuelTruck" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">No Voucher</label>
+                        <input type="text" id="editNoVoucher" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">PIC Name</label>
+                    <input type="text" id="editPicName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-900 text-white font-semibold rounded hover:bg-blue-800 transition">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Toggle Sidebar -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainWrapper = document.getElementById('mainWrapper');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                mainWrapper.classList.add('ml-64');
+                mainWrapper.classList.remove('ml-0');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                mainWrapper.classList.remove('ml-64');
+                mainWrapper.classList.add('ml-0');
+            }
         }
+    </script>
 
-        return {
-            "No": index + 1,
-            "Tanggal": tglStr,
-            "Jam": jamStr,
-            "Shift": log.shift || '-',
-            "Unit": log.no_unit || '-',
-            "HM/KM": log.hm_fuel_truck || '-',
-            "Liter": log.fuel_amount || 0,
-            "Fuel Storage": log.fuel_storage || '-',
-            "Supply": "",
-            "Transfer": "",
-            "Driver": log.pic_name || '-',
-            "Fuelman": log.pic_name || '-',
-            "Workgroup": log.material_type || '-',
-            "Bulan": bulanStr
-        };
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    XLSX.utils.book_append_sheet(wb, ws, "Fuel Logs");
-
-    const siteFilter = document.getElementById('filterSite').value;
-    XLSX.writeFile(wb, `Fuel_Monitoring_Report_${siteFilter}.xlsx`);
-}
+    <!-- Script Utama (script.js) -->
+    <script src="./script.js"></script>
+</body>
+</html>
