@@ -57,7 +57,7 @@ async function loadDashboardData() {
 
     if (error) {
         console.error("Error loading table data:", error);
-        document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="14" class="p-8 text-center text-red-400 font-semibold">Gagal memuat data: ${error.message}</td></tr>`;
+        document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="14" class="p-8 text-center text-red-500 font-semibold">Gagal memuat data: ${error.message}</td></tr>`;
         return;
     }
 
@@ -120,23 +120,23 @@ function computeAndRenderAdvancedMetrics(rows) {
     const dominantMaterial = document.getElementById('dominantMaterial');
     if (dominantMaterial) dominantMaterial.innerText = dominantMatText;
 
-    // Top 3 Consuming Unit (Disesuaikan dengan tema Dark Glassmorphism)
+    // Top 3 Consuming Unit
     const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
     const topUnitsContainer = document.getElementById('topUnitsContainer');
     if (topUnitsContainer) {
         topUnitsContainer.innerHTML = "";
         if (sortedUnits.length === 0) {
-            topUnitsContainer.innerHTML = `<div class="col-span-3 glass-card p-3 rounded-xl text-center text-xs text-slate-400">Belum ada data unit terpakai (Issued) pada filter ini.</div>`;
+            topUnitsContainer.innerHTML = `<div class="col-span-3 bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Belum ada data unit terpakai (Issued) pada filter ini.</div>`;
         } else {
             sortedUnits.forEach(([unit, vol], index) => {
                 const card = document.createElement('div');
-                card.className = "glass-card p-3 rounded-xl border border-white/5 flex flex-col justify-between shadow-sm transition hover:border-white/20";
+                card.className = "bg-slate-50 p-3 rounded border border-slate-200 flex flex-col justify-between shadow-xs";
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-200">${unit}</span>
-                        <span class="w-5 h-5 rounded-full bg-slate-800 text-indigo-300 text-[10px] font-bold flex items-center justify-center border border-white/10">${index+1}</span>
+                        <span class="text-xs font-bold text-slate-800">${unit}</span>
+                        <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center">${index+1}</span>
                     </div>
-                    <p class="text-sm font-extrabold mt-2 font-mono text-white">${vol.toLocaleString('id-ID')} <span class="text-[10px] font-normal text-slate-400">Liter</span></p>
+                    <p class="text-sm font-extrabold mt-2 font-mono text-slate-900">${vol.toLocaleString('id-ID')} <span class="text-[10px] font-normal text-slate-500">Liter</span></p>
                 `;
                 topUnitsContainer.appendChild(card);
             });
@@ -172,25 +172,25 @@ function renderTable(rows) {
         const dateStr = row.created_at ? new Date(row.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
         
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-white/5 transition border-b border-white/5";
+        tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
         tr.innerHTML = `
-            <td class="p-3 font-mono text-[11px] text-slate-400">${dateStr}</td>
-            <td class="p-3 font-semibold text-white">${row.site_name || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'}">${row.shift || '-'}</span></td>
-            <td class="p-3 text-slate-300">${row.fuel_storage || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.receipt_issued === 'ISSUED' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : row.receipt_issued === 'TRANSFER' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}">${row.receipt_issued || '-'}</span></td>
-            <td class="p-3 font-mono font-bold text-white">${row.no_unit || '-'}</td>
-            <td class="p-3 text-slate-400 italic">${row.keterangan_unit || '-'}</td>
-            <td class="p-3 font-medium text-slate-300">${row.material_type || '-'}</td>
-            <td class="p-3 font-extrabold text-white font-mono">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
-            <td class="p-3 font-mono text-slate-300">${row.hm_fuel_truck || '-'}</td>
-            <td class="p-3 font-mono text-slate-400">${row.no_voucher || '-'}</td>
-            <td class="p-3 font-medium text-slate-200">${row.pic_name || '-'}</td>
+            <td class="p-3 font-mono text-[11px] text-slate-500">${dateStr}</td>
+            <td class="p-3 font-semibold text-slate-900">${row.site_name || '-'}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">${row.shift || '-'}</span></td>
+            <td class="p-3 text-slate-600">${row.fuel_storage || '-'}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.receipt_issued === 'ISSUED' ? 'bg-red-50 text-red-600 border border-red-200' : row.receipt_issued === 'TRANSFER' ? 'bg-sky-50 text-sky-600 border border-sky-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">${row.receipt_issued || '-'}</span></td>
+            <td class="p-3 font-mono font-bold text-slate-900">${row.no_unit || '-'}</td>
+            <td class="p-3 text-slate-500 italic">${row.keterangan_unit || '-'}</td>
+            <td class="p-3 font-medium text-slate-700">${row.material_type || '-'}</td>
+            <td class="p-3 font-extrabold text-slate-900 font-mono">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
+            <td class="p-3 font-mono text-slate-600">${row.hm_fuel_truck || '-'}</td>
+            <td class="p-3 font-mono text-slate-500">${row.no_voucher || '-'}</td>
+            <td class="p-3 font-medium text-slate-800">${row.pic_name || '-'}</td>
             <td class="p-3 text-center">
-                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 border border-white/10 rounded-lg shadow-xs transition">View Photo</button>
+                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View Photo</button>
             </td>
             <td class="p-3 text-center">
-                <button onclick="openEditModal('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-indigo-300 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/30 rounded-lg shadow-xs transition">Edit</button>
+                <button onclick="openEditModal('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-blue-600 bg-white hover:bg-blue-50 border border-blue-200 rounded shadow-xs transition">Edit</button>
             </td>
         `;
         tbody.appendChild(tr);
