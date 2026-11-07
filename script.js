@@ -187,7 +187,7 @@ function renderTable(rows) {
             <td class="p-3 font-mono text-slate-500">${row.no_voucher || '-'}</td>
             <td class="p-3 font-medium text-slate-800">${row.pic_name || '-'}</td>
             <td class="p-3 text-center">
-                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View Photo</button>
+                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View</button>
             </td>
             <td class="p-3 text-center">
                 <button onclick="openEditModal('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-blue-600 bg-white hover:bg-blue-50 border border-blue-200 rounded shadow-xs transition">Edit</button>
