@@ -1,28 +1,11 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuel Monitoring System - PT Bima Nusa Internasional</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        glass: {
-                            bg: 'rgba(15, 23, 42, 0.65)',
-                            border: 'rgba(255, 255, 255, 0.08)',
-                            card: 'rgba(30, 41, 59, 0.45)',
-                            hover: 'rgba(51, 65, 85, 0.6)'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- SheetJS -->
@@ -30,56 +13,28 @@
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: radial-gradient(circle at top left, #1e1b4b, #0f172a, #020617);
-            color: #e2e8f0;
-            min-height: 100vh;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         @keyframes wave {
             0% { transform: translateX(0) translateZ(0) scaleY(1); }
             50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
             100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
         }
         .wave-animation { animation: wave 3s linear infinite; }
-        
-        /* Glassmorphism Effects */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-        }
-
-        /* Warna Aksen Garis Atas Card */
-        .border-t-custom-blue { border-top: 3px solid #6366f1 !important; }
-        .border-t-custom-red { border-top: 3px solid #ef4444 !important; }
+        /* Warna Aksen Konsisten */
+        .border-t-custom-blue { border-top-color: #000080 !important; }
+        .border-t-custom-red { border-top-color: #FF0000 !important; }
         
         /* Transisi Smooth untuk Toggle Sidebar */
         #sidebar { transition: transform 0.3s ease-in-out; }
         #mainWrapper { transition: margin-left 0.3s ease-in-out; }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
     </style>
 </head>
-<body class="antialiased min-h-screen flex overflow-x-hidden">
+<body class="text-slate-800 antialiased min-h-screen flex overflow-x-hidden">
 
     <!-- Sidebar Navigation (Kiri) -->
-    <aside id="sidebar" class="w-64 glass-panel flex flex-col fixed inset-y-0 left-0 z-40 border-r border-white/10 shadow-2xl transform translate-x-0">
+    <aside id="sidebar" class="w-64 bg-slate-950 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-40 border-r border-slate-800 shadow-xl transform translate-x-0">
         <!-- Brand / Logo Area -->
-        <div class="h-16 flex items-center px-6 border-b border-white/10 bg-slate-900/40">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800/80 bg-slate-900/50">
             <div class="flex items-center space-x-3">
                 <img src="./BN.png" alt="BNI Logo" class="h-7 w-auto object-contain bg-white rounded p-0.5" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
@@ -89,44 +44,44 @@
             </div>
         </div>
 
-        <!-- Navigation Menu -->
+        <!-- Navigation Menu (Form Input Dihapus Sesuai Permintaan) -->
         <div class="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
             <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-wider">Control Menu</p>
             
-            <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition">
+            <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-[#000080] text-white text-xs font-semibold shadow-sm transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 <span>Dashboard Utama</span>
             </a>
         </div>
 
         <!-- Sidebar Footer / Status -->
-        <div class="p-4 border-t border-white/10 bg-slate-900/30">
+        <div class="p-4 border-t border-slate-800 bg-slate-900/40">
             <div class="flex items-center justify-between text-[11px]">
                 <span class="text-slate-400">Status Sistem</span>
                 <span class="flex items-center text-emerald-400 font-medium">
-                    <span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></span> Online
+                    <span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online
                 </span>
             </div>
         </div>
     </aside>
 
-    <!-- Main Wrapper -->
+    <!-- Main Wrapper (Kanan, bergeser otomatis saat sidebar di-hide) -->
     <div id="mainWrapper" class="flex-1 ml-64 flex flex-col min-h-screen">
 
         <!-- Top Header Bar -->
-        <header class="glass-panel border-b border-white/10 sticky top-0 z-30 shadow-lg">
+        <header class="bg-white border-b-2 border-[#FF0000] sticky top-0 z-30 shadow-xs">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center space-x-3">
-                        <!-- Tombol Toggle Sidebar -->
-                        <button onclick="toggleSidebar()" title="Sembunyikan/Tampilkan Sidebar" class="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 transition flex items-center justify-center border border-white/10">
+                        <!-- Tombol Toggle Sidebar (Hide / Show) -->
+                        <button onclick="toggleSidebar()" title="Sembunyikan/Tampilkan Sidebar" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         </button>
-                        <span class="text-xs font-bold text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-lg border border-indigo-500/30">UTAMA</span>
+                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded">UTAMA</span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <span class="text-xs text-slate-400">MoCo HO</span>
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-500/30 ring-2 ring-white/20">HO</div>
+                        <span class="text-xs text-slate-500">MoCo HO</span>
+                        <div class="w-8 h-8 rounded-full bg-[#000080] text-white flex items-center justify-center font-bold text-xs shadow-xs">HO</div>
                     </div>
                 </div>
             </div>
@@ -135,101 +90,101 @@
         <!-- Main Content Container -->
         <main class="max-w-7xl w-full mx-auto px-6 py-6 space-y-6 flex-1">
 
-            <!-- KPI Grid Atas -->
+            <!-- KPI Grid Atas (Garis Biru #000080 dengan Efek 3D Shadow) -->
             <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 
                 <!-- Card 1 -->
-                <div class="glass-card p-4 rounded-2xl border-t-custom-blue flex flex-col justify-between transition hover:border-white/20">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Transaksi</p>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Transaksi</p>
                     <div class="mt-3 flex items-baseline justify-between">
-                        <p id="statCount" class="text-2xl font-extrabold text-white">0</p>
-                        <span class="text-[10px] bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded-md border border-white/5 font-medium">Records</span>
+                        <p id="statCount" class="text-2xl font-bold text-slate-900">0</p>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Records</span>
                     </div>
                 </div>
 
                 <!-- Card 2 -->
-                <div class="glass-card p-4 rounded-2xl border-t-custom-blue flex flex-col justify-between transition hover:border-white/20">
-                    <p id="statTxLabel" class="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Fuel Volume</p>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
+                    <p id="statTxLabel" class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Fuel Volume</p>
                     <div class="mt-3 flex items-baseline justify-between">
-                        <p id="statTxAmount" class="text-2xl font-extrabold text-emerald-400">0 L</p>
-                        <span class="text-[10px] bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/20 font-medium">Liters</span>
+                        <p id="statTxAmount" class="text-2xl font-bold text-emerald-600">0 L</p>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">Liters</span>
                     </div>
                 </div>
 
                 <!-- Card 3 -->
-                <div class="glass-card p-4 rounded-2xl border-t-custom-blue flex flex-col justify-between transition hover:border-white/20">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex flex-col justify-between">
                     <div class="flex justify-between items-start">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Top volume fuel by Material</p>
-                        <span id="statActiveSite" class="text-[10px] font-bold text-indigo-300 bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-500/30">ALL SITE</span>
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Top volume fuel by Material</p>
+                        <span id="statActiveSite" class="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">ALL SITE</span>
                     </div>
                     <div class="mt-3">
-                        <p id="dominantMaterial" class="text-sm font-bold text-white truncate">-</p>
-                        <p class="text-[10px] text-slate-500 mt-0.5">Distribusi material dominan</p>
+                        <p id="dominantMaterial" class="text-sm font-bold text-slate-800 truncate">-</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Distribusi material dominan</p>
                     </div>
                 </div>
 
                 <!-- Card 4 -->
-                <div class="glass-card p-3.5 rounded-2xl border-t-custom-blue flex items-center space-x-3.5 transition hover:border-white/20">
-                    <div class="relative w-12 h-16 bg-slate-950/80 border border-white/10 rounded-xl overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
-                        <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-indigo-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-blue shadow-sm flex items-center space-x-3.5">
+                    <div class="relative w-12 h-16 bg-slate-900 border-2 border-slate-700 rounded-md overflow-hidden flex-shrink-0 flex flex-col justify-end shadow-inner">
+                        <div id="tankFluid" class="w-[200%] bg-gradient-to-t from-cyan-600 to-blue-500 wave-animation transition-all duration-700 ease-out relative opacity-90" style="height: 0%;">
                             <div class="absolute top-0 left-0 w-full h-1 bg-cyan-300 shadow-sm"></div>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">Actual Fuel Stock</p>
-                        <p id="tankVolume" class="text-xl font-extrabold text-white truncate mt-1">0 L</p>
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Actual Fuel Stock</p>
+                        <p id="tankVolume" class="text-xl font-bold text-slate-900 truncate mt-1">0 L</p>
                     </div>
                 </div>
 
             </section>
 
-            <!-- Analytics Row Bawah -->
+            <!-- Analytics Row Bawah (Garis Merah #FF0000 dengan Efek 3D Shadow) -->
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
                 <!-- Box 1: Top 3 Consuming Unit -->
-                <div class="lg:col-span-2 glass-card p-4 rounded-2xl border-t-custom-red transition hover:border-white/20">
-                    <div class="flex items-center justify-between pb-3 border-b border-white/10">
-                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Top 3 Consuming Unit</h3>
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-red shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Top 3 Consuming Unit</h3>
                         <span class="text-[10px] text-slate-400">Berdasarkan Filter Aktif</span>
                     </div>
                     <div id="topUnitsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                        <div class="glass-card p-2.5 rounded-xl text-center text-xs text-slate-400">Memuat data unit...</div>
-                        <div class="glass-card p-2.5 rounded-xl text-center text-xs text-slate-400">Memuat data unit...</div>
-                        <div class="glass-card p-2.5 rounded-xl text-center text-xs text-slate-400">Memuat data unit...</div>
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
+                        <div class="bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Memuat data unit...</div>
                     </div>
                 </div>
 
                 <!-- Box 2: Pic / Pelaksana Teraktif -->
-                <div class="glass-card p-4 rounded-2xl border-t-custom-red flex flex-col justify-between transition hover:border-white/20">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 border-t-[3px] border-t-custom-red shadow-sm flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center justify-between pb-3 border-b border-white/10">
-                            <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Pic / Pelaksana Teraktif</h3>
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Pic / Pelaksana Teraktif</h3>
                         </div>
                         <div class="mt-3 space-y-2">
-                            <div class="flex items-center justify-between bg-slate-800/40 p-2.5 rounded-xl border border-white/5">
-                                <span id="topPicName" class="text-xs font-bold text-white">-</span>
-                                <span id="topPicCount" class="text-[11px] font-semibold bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-md border border-indigo-500/30">0 Input</span>
+                            <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded border border-slate-100">
+                                <span id="topPicName" class="text-xs font-bold text-slate-800">-</span>
+                                <span id="topPicCount" class="text-[11px] font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">0 Input</span>
                             </div>
                         </div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-3 italic">*Pencatatan terbanyak pada periode ini.</p>
+                    <p class="text-[10px] text-slate-400 mt-3 italic">*Pencatatan terbanyak pada periode ini.</p>
                 </div>
 
             </section>
 
             <!-- Filter Bar -->
-            <section class="glass-card p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+            <section class="bg-white p-3.5 rounded-xl border border-slate-200 border-t-2 border-t-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
-                    <div class="flex items-center space-x-1.5 bg-slate-900/60 px-2.5 py-1.5 rounded-xl border border-white/10">
-                        <span class="text-xs font-medium text-slate-400">Tanggal:</span>
-                        <input type="date" id="startDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-200 outline-none color-scheme-dark">
-                        <span class="text-xs text-slate-500">s/d</span>
-                        <input type="date" id="endDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-200 outline-none color-scheme-dark">
-                        <button onclick="resetDateFilter()" class="text-xs text-slate-400 hover:text-white px-1 font-bold">✕</button>
+                    <div class="flex items-center space-x-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <span class="text-xs font-medium text-slate-500">Tanggal:</span>
+                        <input type="date" id="startDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                        <span class="text-xs text-slate-400">s/d</span>
+                        <input type="date" id="endDate" onchange="loadDashboardData()" class="bg-transparent text-xs font-medium text-slate-700 outline-none">
+                        <button onclick="resetDateFilter()" class="text-xs text-slate-400 hover:text-slate-600 px-1 font-bold">✕</button>
                     </div>
                     <div class="flex items-center space-x-1.5">
-                        <label for="filterSite" class="text-xs font-medium text-slate-400">Site:</label>
-                        <select id="filterSite" onchange="loadDashboardData()" class="bg-slate-900/80 border border-white/10 text-xs font-medium text-slate-200 rounded-xl px-2.5 py-1.5 outline-none">
+                        <label for="filterSite" class="text-xs font-medium text-slate-500">Site:</label>
+                        <select id="filterSite" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
                             <option value="ALL">All Site</option>
                             <option value="SSB">SSB</option>
                             <option value="KBB">KBB</option>
@@ -238,16 +193,16 @@
                         </select>
                     </div>
                     <div class="flex items-center space-x-1.5">
-                        <label for="filterShift" class="text-xs font-medium text-slate-400">Shift:</label>
-                        <select id="filterShift" onchange="loadDashboardData()" class="bg-slate-900/80 border border-white/10 text-xs font-medium text-slate-200 rounded-xl px-2.5 py-1.5 outline-none">
+                        <label for="filterShift" class="text-xs font-medium text-slate-500">Shift:</label>
+                        <select id="filterShift" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
                             <option value="ALL">All Shift</option>
                             <option value="Day">Day</option>
                             <option value="Night">Night</option>
                         </select>
                     </div>
                     <div class="flex items-center space-x-1.5">
-                        <label for="filterTx" class="text-xs font-medium text-slate-400">Transaction:</label>
-                        <select id="filterTx" onchange="loadDashboardData()" class="bg-slate-900/80 border border-white/10 text-xs font-medium text-slate-200 rounded-xl px-2.5 py-1.5 outline-none">
+                        <label for="filterTx" class="text-xs font-medium text-slate-500">Transaction:</label>
+                        <select id="filterTx" onchange="loadDashboardData()" class="bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
                             <option value="ALL">All Trx</option>
                             <option value="ISSUED">Issued</option>
                             <option value="RECEIPT">Receipt</option>
@@ -255,20 +210,20 @@
                         </select>
                     </div>
                 </div>
-                <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-700/80 border border-white/10 rounded-xl transition flex items-center justify-center shadow-md">
+                <button onclick="exportToExcel()" title="Download Excel" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition flex items-center justify-center shadow-xs">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </button>
             </section>
 
             <!-- Table Section -->
-            <section class="glass-card rounded-2xl overflow-hidden border border-white/10 shadow-xl">
-                <div class="px-5 py-3.5 border-b border-white/10 flex justify-between items-center bg-slate-900/40">
-                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider">RIWAYAT TRANSAKSI</h2>
+            <section class="bg-white border border-slate-200 border-t-2 border-t-slate-300 rounded-xl shadow-sm overflow-hidden">
+                <div class="px-5 py-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50/70">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">RIWAYAT TRANSAKSI</h2>
                     <span class="text-[11px] text-slate-400 font-medium">HO Monitoring Control</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-900/60 border-b border-white/10 text-slate-400 font-medium">
+                        <thead class="bg-slate-50/50 border-b border-slate-200 text-slate-500 font-medium">
                             <tr>
                                 <th class="p-3">Waktu Input</th>
                                 <th class="p-3">Site</th>
@@ -286,17 +241,17 @@
                                 <th class="p-3 text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="logsTableBody" class="divide-y divide-white/5 text-slate-300">
-                            <tr><td colspan="14" class="p-8 text-center text-slate-500">Memuat data transaksi...</td></tr>
+                        <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr><td colspan="14" class="p-8 text-center text-slate-400">Memuat data transaksi...</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <!-- Pagination Bar -->
-                <div class="px-5 py-3.5 border-t border-white/10 bg-slate-900/40 flex items-center justify-between text-xs text-slate-400">
+                <div class="px-5 py-3.5 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
                     <div class="flex items-center space-x-2">
                         <span>Tampilkan</span>
-                        <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-slate-200 outline-none">
+                        <select id="rowsPerPage" onchange="currentPage=1; loadDashboardData()" class="bg-white border border-slate-200 rounded px-2 py-1 outline-none shadow-xs">
                             <option value="15">15</option>
                             <option value="30" selected>30</option>
                             <option value="50">50</option>
@@ -304,53 +259,53 @@
                         <span id="paginationInfo">Memuat data...</span>
                     </div>
                     <div class="flex items-center space-x-1">
-                        <button onclick="prevPage()" id="prevBtn" class="px-3 py-1.5 bg-slate-800/60 border border-white/10 rounded-lg hover:bg-slate-700/80 disabled:opacity-30 text-slate-200 transition">Prev</button>
-                        <span id="pageIndicator" class="px-2.5 font-semibold text-white">1</span>
-                        <button onclick="nextPage()" id="nextBtn" class="px-3 py-1.5 bg-slate-800/60 border border-white/10 rounded-lg hover:bg-slate-700/80 disabled:opacity-30 text-slate-200 transition">Next</button>
+                        <button onclick="prevPage()" id="prevBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Prev</button>
+                        <span id="pageIndicator" class="px-2 font-medium">1</span>
+                        <button onclick="nextPage()" id="nextBtn" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 shadow-xs">Next</button>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Modal Dual Evidence -->
-    <div id="imageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel rounded-2xl p-6 max-w-3xl w-full relative shadow-2xl space-y-4 border border-white/15">
-            <div class="flex items-center justify-between pb-3 border-b border-white/10">
-                <h3 class="text-sm font-bold text-white uppercase tracking-wide">TRANSACTION EVIDENCE</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white font-bold p-1 rounded-full bg-slate-800 hover:bg-slate-700 w-7 h-7 flex items-center justify-center transition">✕</button>
+    <!-- Modal Dual Evidence (HM & Liter) -->
+    <div id="imageModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-3xl w-full relative shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">TRANSACTION EVIDENCE</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 font-bold p-1 rounded-full bg-slate-100 hover:bg-slate-200 w-7 h-7 flex items-center justify-center transition">✕</button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <p class="text-xs font-semibold text-slate-300 mb-1.5">Evidence HM Unit</p>
-                    <div class="border border-white/10 rounded-xl overflow-hidden bg-slate-900/60 h-64 flex items-center justify-center shadow-inner">
+                    <p class="text-xs font-semibold text-slate-600 mb-1.5">Evidence HM Unit</p>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 h-64 flex items-center justify-center shadow-inner">
                         <img id="modalImgHm" src="" class="w-full h-full object-contain hidden" alt="Evidence HM">
-                        <span id="noImgHm" class="text-xs text-slate-500 italic">Tidak ada foto HM</span>
+                        <span id="noImgHm" class="text-xs text-slate-400 italic">Tidak ada foto HM</span>
                     </div>
                 </div>
                 <div>
-                    <p class="text-xs font-semibold text-slate-300 mb-1.5">Evidence Liter</p>
-                    <div class="border border-white/10 rounded-xl overflow-hidden bg-slate-900/60 h-64 flex items-center justify-center shadow-inner">
+                    <p class="text-xs font-semibold text-slate-600 mb-1.5">Evidence Liter</p>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 h-64 flex items-center justify-center shadow-inner">
                         <img id="modalImgLiter" src="" class="w-full h-full object-contain hidden" alt="Evidence Liter">
-                        <span id="noImgLiter" class="text-xs text-slate-500 italic">Tidak ada foto Liter</span>
+                        <span id="noImgLiter" class="text-xs text-slate-400 italic">Tidak ada foto Liter</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal -->
-    <div id="editModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel rounded-2xl max-w-lg w-full p-6 relative shadow-2xl border border-white/15">
-            <button onclick="closeEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold">✕</button>
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 pb-2 border-b border-white/10">Edit Data Transaksi</h3>
+    <!-- Edit Modal (CRUD Update) -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-xl border border-slate-200">
+            <button onclick="closeEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Edit Data Transaksi</h3>
             
             <form id="editForm" onsubmit="handleUpdate(event)" class="space-y-4 text-xs">
                 <input type="hidden" id="editId">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">Site</label>
-                        <select id="editSiteName" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Site</label>
+                        <select id="editSiteName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                             <option value="SSB">SSB</option>
                             <option value="KBB">KBB</option>
                             <option value="IWACO">IWACO</option>
@@ -358,8 +313,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">Shift</label>
-                        <select id="editShift" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Shift</label>
+                        <select id="editShift" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                             <option value="Day">Day</option>
                             <option value="Night">Night</option>
                         </select>
@@ -367,12 +322,12 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">Storage</label>
-                        <input type="text" id="editFuelStorage" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Storage</label>
+                        <input type="text" id="editFuelStorage" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                     </div>
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">Transaction</label>
-                        <select id="editReceiptIssued" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Transaction</label>
+                        <select id="editReceiptIssued" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                             <option value="ISSUED">ISSUED</option>
                             <option value="RECEIPT">RECEIPT</option>
                             <option value="TRANSFER">TRANSFER</option>
@@ -381,41 +336,41 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">No Unit</label>
-                        <input type="text" id="editNoUnit" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">No Unit</label>
+                        <input type="text" id="editNoUnit" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                     </div>
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">Keterangan Unit</label>
-                        <input type="text" id="editKeteranganUnit" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-medium text-slate-300 mb-1">Material Type</label>
-                        <input type="text" id="editMaterialType" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-medium text-slate-300 mb-1">Jumlah (Liter)</label>
-                        <input type="number" step="any" id="editFuelAmount" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Keterangan Unit</label>
+                        <input type="text" id="editKeteranganUnit" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">HM Fuel Truck</label>
-                        <input type="text" id="editHmFuelTruck" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Material Type</label>
+                        <input type="text" id="editMaterialType" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                     </div>
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">No Voucher</label>
-                        <input type="text" id="editNoVoucher" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                        <label class="block font-medium text-slate-600 mb-1">Jumlah (Liter)</label>
+                        <input type="number" step="any" id="editFuelAmount" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">HM Fuel Truck</label>
+                        <input type="text" id="editHmFuelTruck" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">No Voucher</label>
+                        <input type="text" id="editNoVoucher" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                     </div>
                 </div>
                 <div>
-                    <label class="block font-medium text-slate-300 mb-1">PIC Name</label>
-                    <input type="text" id="editPicName" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-200 outline-none">
+                    <label class="block font-medium text-slate-600 mb-1">PIC Name</label>
+                    <input type="text" id="editPicName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 outline-none">
                 </div>
-                <div class="flex justify-end space-x-2 pt-3 border-t border-white/10">
-                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/30">Simpan Perubahan</button>
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-900 text-white font-semibold rounded hover:bg-blue-800 transition">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
