@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://srygivwnsjyjmacwokix.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyেন্টসImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyNTgsImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentPage = 1;
@@ -7,8 +7,6 @@ let totalRows = 0;
 let cachedFilteredDataForExcel = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Kosongkan filter tanggal default agar langsung menampilkan semua data riwayat transaksi
-    // atau biarkan kosong supaya tidak membatasi data hari ini saja jika belum ada entry hari ini.
     loadDashboardData();
     setInterval(loadDashboardData, 30000); // Polling real-time 30 detik
 });
@@ -22,11 +20,10 @@ function buildBaseQuery() {
 
     let query = supabaseClient.from('fuel_logs').select('*', { count: 'exact' });
 
-    if (site !== 'ALL') query = query.eq('site_name', site);
-    if (shift !== 'ALL') query = query.eq('shift', shift);
-    if (tx !== 'ALL') query = query.eq('receipt_issued', tx);
+    if (site && site !== 'ALL') query = query.eq('site_name', site);
+    if (shift && shift !== 'ALL') query = query.eq('shift', shift);
+    if (tx && tx !== 'ALL') query = query.eq('receipt_issued', tx);
     
-    // Hanya terapkan filter tanggal jika user benar-benar memilihnya
     if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
     if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
 
@@ -60,7 +57,7 @@ async function loadDashboardData() {
 
     if (error) {
         console.error("Error loading table data:", error);
-        document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="14" class="p-8 text-center text-red-500">Gagal memuat data: ${error.message}</td></tr>`;
+        document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="14" class="p-8 text-center text-red-500 font-semibold">Gagal memuat data: ${error.message}</td></tr>`;
         return;
     }
 
