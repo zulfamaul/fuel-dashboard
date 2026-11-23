@@ -1,346 +1,398 @@
-const SUPABASE_URL = "https://srygivwnsjyjmacwokix.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyeWdpdnduc2p5am1hY3dva2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NjUyNTgsImV4cCI6MjEwNTU0MTI1OH0.GhsqIHUaww0af6P2USDyUpw2FuY_IzrihtFXGbSp2SY";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- JavaScript Logic -->
+    <script>
+        const SUPABASE_URL = "https://uahepttofqbbgzysfyqc.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_Ibh4P-BuQxTtLLBIEtHwQg_8sJtDh5w";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentPage = 1;
-let totalRows = 0;
-let cachedFilteredDataForExcel = [];
+        let allLogs = [];
+        let currentlyFilteredLogs = [];
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadDashboardData();
-    setInterval(loadDashboardData, 30000); // Polling real-time 30 detik
-});
+        // State Pagination
+        let currentPage = 1;
+        let rowsPerPage = 30;
 
-function buildBaseQuery() {
-    const site = document.getElementById('filterSite').value;
-    const shift = document.getElementById('filterShift').value;
-    const tx = document.getElementById('filterTx').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-
-    let query = supabaseClient.from('fuel_logs').select('*', { count: 'exact' });
-
-    if (site && site !== 'ALL') query = query.eq('site_name', site);
-    if (shift && shift !== 'ALL') query = query.eq('shift', shift);
-    if (tx && tx !== 'ALL') query = query.eq('receipt_issued', tx);
-    
-    if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
-    if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
-
-    return query;
-}
-
-async function loadDashboardData() {
-    const site = document.getElementById('filterSite').value;
-    const limit = parseInt(document.getElementById('rowsPerPage').value) || 30;
-
-    const siteLabelEl = document.getElementById('statActiveSite');
-    if (siteLabelEl) siteLabelEl.innerText = site === 'ALL' ? 'ALL SITE' : site;
-
-    // Ambil data analitik KPI
-    const { data: allFilteredData, error: analyticsError } = await buildBaseQuery().select('no_unit, fuel_amount, material_type, pic_name, receipt_issued, fuel_storage, site_name, created_at');
-    
-    if (!analyticsError && allFilteredData) {
-        cachedFilteredDataForExcel = allFilteredData;
-        computeAndRenderAdvancedMetrics(allFilteredData);
-    } else {
-        console.error("Analytics Error:", analyticsError);
-    }
-
-    // Server-side pagination untuk tabel utama
-    const from = (currentPage - 1) * limit;
-    const to = from + limit - 1;
-
-    const { data, count, error } = await buildBaseQuery()
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-    if (error) {
-        console.error("Error loading table data:", error);
-        document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="14" class="p-8 text-center text-red-500 font-semibold">Gagal memuat data: ${error.message}</td></tr>`;
-        return;
-    }
-
-    totalRows = count || 0;
-    renderTable(data || []);
-    updatePaginationInfo(limit);
-}
-
-function computeAndRenderAdvancedMetrics(rows) {
-    let totalVol = 0;
-    const unitMap = {};
-    const materialMap = {};
-    const picMap = {};
-
-    rows.forEach(r => {
-        const vol = parseFloat(r.fuel_amount) || 0;
-        totalVol += vol;
-
-        if (r.material_type) {
-            const mat = r.material_type.toUpperCase();
-            materialMap[mat] = (materialMap[mat] || 0) + vol;
+        // Set Default Tanggal Filter ke Hari Ini Secara Realtime saat Halaman Dimuat
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
         }
 
-        if (r.no_unit && r.receipt_issued === 'ISSUED') {
-            const unit = r.no_unit.trim().toUpperCase();
-            unitMap[unit] = (unitMap[unit] || 0) + vol;
+        async function fetchLogs() {
+            const { data, error } = await supabaseClient
+                .from('fuel_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (error) {
+                console.error("Error fetching logs:", error);
+                return;
+            }
+
+            allLogs = data;
+            renderTable();
         }
 
-        if (r.pic_name) {
-            const pic = r.pic_name.trim();
-            picMap[pic] = (picMap[pic] || 0) + 1;
+        function resetDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            currentPage = 1;
+            renderTable();
         }
-    });
 
-    const statTxAmount = document.getElementById('statTxAmount');
-    const statCount = document.getElementById('statCount');
-    if (statTxAmount) statTxAmount.innerText = totalVol.toLocaleString('id-ID') + ' L';
-    if (statCount) statCount.innerText = rows.length.toLocaleString('id-ID');
+        function renderTable() {
+            const filterSiteVal = document.getElementById('filterSite').value;
+            const filterShiftVal = document.getElementById('filterShift').value;
+            const filterTxVal = document.getElementById('filterTx').value;
+            const startDateVal = document.getElementById('startDate').value;
+            const endDateVal = document.getElementById('endDate').value;
 
-    // Kalkulasi Tangki Real-time
-    const totalReceipt = rows.filter(r => r.receipt_issued === 'RECEIPT').reduce((a, c) => a + (parseFloat(c.fuel_amount) || 0), 0);
-    const totalIssued = rows.filter(r => r.receipt_issued === 'ISSUED').reduce((a, c) => a + (parseFloat(c.fuel_amount) || 0), 0);
-    const remainingStock = Math.max(0, totalReceipt - totalIssued);
+            const tbody = document.getElementById('logsTableBody');
+            
+            document.getElementById('statActiveSite').innerText = filterSiteVal === 'ALL' ? 'ALL SITE' : filterSiteVal;
 
-    const tankPerc = totalReceipt > 0 ? Math.min(Math.max((remainingStock / totalReceipt) * 100, 5), 100) : 20;
-    const tankFluid = document.getElementById('tankFluid');
-    const tankVolume = document.getElementById('tankVolume');
-    if (tankFluid) tankFluid.style.height = tankPerc + '%';
-    if (tankVolume) tankVolume.innerText = remainingStock.toLocaleString('id-ID') + ' L';
+            // Filter Data Sesuai Pilihan Dropdown & Tanggal
+            currentlyFilteredLogs = allLogs.filter(item => {
+                const matchSite = (filterSiteVal === 'ALL') || (item.site_name === filterSiteVal);
+                
+                const itemShift = item.shift ? item.shift.toString().trim() : '';
+                const matchShift = (filterShiftVal === 'ALL') || (itemShift.toLowerCase() === filterShiftVal.toLowerCase());
 
-    // Material Dominan
-    let dominantMatText = "-";
-    let maxMatVol = 0;
-    for (const [mat, vol] of Object.entries(materialMap)) {
-        if (vol > maxMatVol) {
-            maxMatVol = vol;
-            dominantMatText = `${mat} (${vol.toLocaleString('id-ID')} L)`;
-        }
-    }
-    const dominantMaterial = document.getElementById('dominantMaterial');
-    if (dominantMaterial) dominantMaterial.innerText = dominantMatText;
+                const txType = item.receipt_issued ? item.receipt_issued.toString().trim().toUpperCase() : '';
+                const matchTx = (filterTxVal === 'ALL') || (txType === filterTxVal);
 
-    // Top 3 Consuming Unit
-    const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    const topUnitsContainer = document.getElementById('topUnitsContainer');
-    if (topUnitsContainer) {
-        topUnitsContainer.innerHTML = "";
-        if (sortedUnits.length === 0) {
-            topUnitsContainer.innerHTML = `<div class="col-span-3 bg-slate-50 p-2.5 rounded border border-slate-100 text-center text-xs text-slate-400">Belum ada data unit terpakai (Issued) pada filter ini.</div>`;
-        } else {
-            sortedUnits.forEach(([unit, vol], index) => {
-                const card = document.createElement('div');
-                card.className = "bg-slate-50 p-3 rounded border border-slate-200 flex flex-col justify-between shadow-xs";
-                card.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-800">${unit}</span>
-                        <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center">${index+1}</span>
-                    </div>
-                    <p class="text-sm font-extrabold mt-2 font-mono text-slate-900">${vol.toLocaleString('id-ID')} <span class="text-[10px] font-normal text-slate-500">Liter</span></p>
-                `;
-                topUnitsContainer.appendChild(card);
+                let matchDate = true;
+                if (item.created_at) {
+                    const itemDate = new Date(item.created_at);
+                    if (startDateVal) {
+                        const start = new Date(startDateVal);
+                        start.setHours(0, 0, 0, 0);
+                        if (itemDate < start) matchDate = false;
+                    }
+                    if (endDateVal) {
+                        const end = new Date(endDateVal);
+                        end.setHours(23, 59, 59, 999);
+                        if (itemDate > end) matchDate = false;
+                    }
+                }
+
+                return matchSite && matchShift && matchTx && matchDate;
             });
-        }
-    }
 
-    // PIC Teraktif
-    let topPic = "-";
-    let maxPicCount = 0;
-    for (const [pic, count] of Object.entries(picMap)) {
-        if (count > maxPicCount) {
-            maxPicCount = count;
-            topPic = pic;
-        }
-    }
-    const topPicName = document.getElementById('topPicName');
-    const topPicCount = document.getElementById('topPicCount');
-    if (topPicName) topPicName.innerText = topPic;
-    if (topPicCount) topPicCount.innerText = maxPicCount + ' Input';
-}
+            // Update Jumlah Transaksi
+            document.getElementById('statCount').innerText = currentlyFilteredLogs.length;
 
-function renderTable(rows) {
-    const tbody = document.getElementById('logsTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = "";
+            // Update Kartu Statistik Jenis Transaksi Dinamis
+            const txLabel = document.getElementById('statTxLabel');
+            const txAmount = document.getElementById('statTxAmount');
+            
+            let totalVolume = 0;
+            if (filterTxVal === 'ISSUED') {
+                txLabel.innerText = "Total Solar Issued";
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'ISSUED')
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-rose-600";
+            } else if (filterTxVal === 'RECEIPT') {
+                txLabel.innerText = "Total Solar Receipt";
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'RECEIPT')
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-emerald-600";
+            } else if (filterTxVal.includes('TRANSFER')) {
+                txLabel.innerText = `Total ${filterTxVal}`;
+                totalVolume = currentlyFilteredLogs
+                    .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === filterTxVal)
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-sky-600";
+            } else {
+                txLabel.innerText = "Total Volume Solar";
+                totalVolume = currentlyFilteredLogs
+                    .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+                txAmount.className = "text-2xl font-semibold text-slate-900";
+            }
+            txAmount.innerText = `${totalVolume.toLocaleString('id-ID')} L`;
 
-    if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi ditemukan.</td></tr>`;
-        return;
-    }
+            // HITUNG SISA STOK REALTIME KHUSUS DARI SITE YANG SEDANG DIPILIH
+            const siteLogsForStock = allLogs.filter(item => {
+                return (filterSiteVal === 'ALL') || (item.site_name === filterSiteVal);
+            });
 
-    rows.forEach(row => {
-        const dateStr = row.created_at ? new Date(row.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
-        
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
-        tr.innerHTML = `
-            <td class="p-3 font-mono text-[11px] text-slate-500">${dateStr}</td>
-            <td class="p-3 font-semibold text-slate-900">${row.site_name || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${row.shift === 'Day' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">${row.shift || '-'}</span></td>
-            <td class="p-3 text-slate-600">${row.fuel_storage || '-'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.receipt_issued === 'ISSUED' ? 'bg-red-50 text-red-600 border border-red-200' : row.receipt_issued === 'TRANSFER' ? 'bg-sky-50 text-sky-600 border border-sky-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">${row.receipt_issued || '-'}</span></td>
-            <td class="p-3 font-mono font-bold text-slate-900">${row.no_unit || '-'}</td>
-            <td class="p-3 text-slate-500 italic">${row.keterangan_unit || '-'}</td>
-            <td class="p-3 font-medium text-slate-700">${row.material_type || '-'}</td>
-            <td class="p-3 font-extrabold text-slate-900 font-mono">${row.fuel_amount ? row.fuel_amount.toLocaleString('id-ID') + ' L' : '0 L'}</td>
-            <td class="p-3 font-mono text-slate-600">${row.hm_fuel_truck || '-'}</td>
-            <td class="p-3 font-mono text-slate-500">${row.no_voucher || '-'}</td>
-            <td class="p-3 font-medium text-slate-800">${row.pic_name || '-'}</td>
-            <td class="p-3 text-center">
-                <button onclick="openModal('${row.evidence_hm_url || ''}', '${row.evidence_liter_url || ''}')" class="px-2.5 py-1 text-[11px] font-medium bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 rounded shadow-xs transition">View</button>
-            </td>
-            <td class="p-3 text-center">
-                <button onclick="openEditModal('${row.id}')" class="px-3 py-1 text-[11px] font-medium text-blue-600 bg-white hover:bg-blue-50 border border-blue-200 rounded shadow-xs transition">Edit</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
+            const totalReceiptSite = siteLogsForStock
+                .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'RECEIPT')
+                .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
 
-function openModal(hmUrl, literUrl) {
-    const imgHm = document.getElementById('modalImgHm');
-    const noHm = document.getElementById('noImgHm');
-    if (hmUrl && hmUrl !== 'null' && hmUrl !== 'undefined') {
-        imgHm.src = hmUrl;
-        imgHm.classList.remove('hidden');
-        noHm.classList.add('hidden');
-    } else {
-        imgHm.classList.add('hidden');
-        noHm.classList.remove('hidden');
-    }
+            const totalOutSite = siteLogsForStock
+                .filter(i => ['ISSUED', 'TRANSFER INTERN', 'TRANSFER SITE'].includes((i.receipt_issued || '').toString().trim().toUpperCase()))
+                .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
 
-    const imgLiter = document.getElementById('modalImgLiter');
-    const noLiter = document.getElementById('noImgLiter');
-    if (literUrl && literUrl !== 'null' && literUrl !== 'undefined') {
-        imgLiter.src = literUrl;
-        imgLiter.classList.remove('hidden');
-        noLiter.classList.add('hidden');
-    } else {
-        imgLiter.classList.add('hidden');
-        noLiter.classList.remove('hidden');
-    }
+            const remainingFuel = Math.max(0, totalReceiptSite - totalOutSite);
 
-    document.getElementById('imageModal').classList.remove('hidden');
-    document.getElementById('imageModal').classList.add('flex');
-}
+            // Update Tampilan Volume Tangki & Visual Ketinggian Cairan
+            document.getElementById('tankVolume').innerText = `${remainingFuel.toLocaleString('id-ID')} L`;
 
-function closeModal() {
-    document.getElementById('imageModal').classList.add('hidden');
-    document.getElementById('imageModal').classList.remove('flex');
-}
+            let visualHeight = 0;
+            if (totalReceiptSite > 0) {
+                visualHeight = Math.min(100, Math.max(10, Math.round((remainingFuel / totalReceiptSite) * 100)));
+            } else if (remainingFuel > 0) {
+                visualHeight = 50;
+            }
+            document.getElementById('tankFluid').style.height = `${visualHeight}%`;
 
-function openEditModal(id) {
-    const log = cachedFilteredDataForExcel.find(item => item.id == id);
-    if (!log) return;
+            // LOGIKA PAGINATION
+            const totalItems = currentlyFilteredLogs.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
 
-    document.getElementById('editId').value = log.id;
-    document.getElementById('editSiteName').value = log.site_name || 'SSB';
-    document.getElementById('editShift').value = log.shift || 'Day';
-    document.getElementById('editFuelStorage').value = log.fuel_storage || '';
-    document.getElementById('editReceiptIssued').value = log.receipt_issued || 'ISSUED';
-    document.getElementById('editNoUnit').value = log.no_unit || '';
-    document.getElementById('editKeteranganUnit').value = log.keterangan_unit || '';
-    document.getElementById('editMaterialType').value = log.material_type || '';
-    document.getElementById('editFuelAmount').value = log.fuel_amount || 0;
-    document.getElementById('editHmFuelTruck').value = log.hm_fuel_truck || '';
-    document.getElementById('editNoVoucher').value = log.no_voucher || '';
-    document.getElementById('editPicName').value = log.pic_name || '';
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
 
-    document.getElementById('editModal').classList.remove('hidden');
-}
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
 
-function closeEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
+            const paginatedLogs = currentlyFilteredLogs.slice(startIndex, endIndex);
 
-async function handleUpdate(e) {
-    e.preventDefault();
-    const id = document.getElementById('editId').value;
-    const updatedData = {
-        site_name: document.getElementById('editSiteName').value,
-        shift: document.getElementById('editShift').value,
-        fuel_storage: document.getElementById('editFuelStorage').value,
-        receipt_issued: document.getElementById('editReceiptIssued').value,
-        no_unit: document.getElementById('editNoUnit').value,
-        keterangan_unit: document.getElementById('editKeteranganUnit').value,
-        material_type: document.getElementById('editMaterialType').value,
-        fuel_amount: parseFloat(document.getElementById('editFuelAmount').value) || 0,
-        hm_fuel_truck: document.getElementById('editHmFuelTruck').value,
-        no_voucher: document.getElementById('editNoVoucher').value,
-        pic_name: document.getElementById('editPicName').value
-    };
+            // Update UI Informasi Pagination
+            document.getElementById('paginationInfo').innerText = totalItems > 0 
+                ? `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalItems} data`
+                : `Menampilkan 0 data`;
+            
+            document.getElementById('pageIndicator').innerText = `Halaman ${currentPage} dari ${totalPages}`;
+            document.getElementById('prevBtn').disabled = (currentPage === 1);
+            document.getElementById('nextBtn').disabled = (currentPage === totalPages || totalItems === 0);
 
-    const { error } = await supabaseClient.from('fuel_logs').update(updatedData).eq('id', id);
+            // Render Baris Tabel
+            if (paginatedLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+                return;
+            }
 
-    if (error) {
-        alert("Gagal memperbarui data: " + error.message);
-        return;
-    }
+            tbody.innerHTML = paginatedLogs.map((log) => {
+                const dateObj = new Date(log.created_at);
+                const timeStr = dateObj.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                
+                const tx = log.receipt_issued ? log.receipt_issued.toString().trim().toUpperCase() : '';
+                let badgeStyle = "bg-slate-100 text-slate-600";
+                if (tx === 'ISSUED') badgeStyle = "bg-rose-50 text-rose-700 border border-rose-200";
+                if (tx === 'RECEIPT') badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                if (tx.includes('TRANSFER')) badgeStyle = "bg-sky-50 text-sky-700 border border-sky-200";
 
-    alert("Data berhasil diperbarui!");
-    closeEditModal();
-    loadDashboardData();
-}
+                const shiftVal = log.shift || '-';
+                let shiftStyle = "bg-slate-100 text-slate-600";
+                if (shiftVal.toLowerCase() === 'day') shiftStyle = "bg-amber-50 text-amber-700 border border-amber-200";
+                if (shiftVal.toLowerCase() === 'night') shiftStyle = "bg-indigo-50 text-indigo-700 border border-indigo-200";
 
-function updatePaginationInfo(limit) {
-    const start = totalRows === 0 ? 0 : (currentPage - 1) * limit + 1;
-    const end = Math.min(currentPage * limit, totalRows);
-    document.getElementById('paginationInfo').innerText = `Menampilkan ${start} - ${end} dari ${totalRows} data`;
-    document.getElementById('pageIndicator').innerText = currentPage;
+                const keteranganVal = log.unit_remark ? log.unit_remark : '-';
 
-    document.getElementById('prevBtn').disabled = currentPage === 1;
-    document.getElementById('nextBtn').disabled = end >= totalRows;
-}
-
-function nextPage() { currentPage++; loadDashboardData(); }
-function prevPage() { if (currentPage > 1) { currentPage--; loadDashboardData(); } }
-function resetDateFilter() {
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-    currentPage = 1;
-    loadDashboardData();
-}
-
-function exportToExcel() {
-    if (cachedFilteredDataForExcel.length === 0) {
-        alert("Tidak ada data untuk diexport!");
-        return;
-    }
-
-    const excelData = cachedFilteredDataForExcel.map((log, index) => {
-        let tglStr = '-';
-        let jamStr = '-';
-        let bulanStr = '-';
-
-        if (log.created_at) {
-            const d = new Date(log.created_at);
-            tglStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/\./g, '-');
-            jamStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
-            bulanStr = d.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase();
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 text-slate-500 whitespace-nowrap">${timeStr}</td>
+                        <td class="p-3 font-semibold text-slate-900">${log.site_name || '-'}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium ${shiftStyle}">
+                                ${shiftVal}
+                            </span>
+                        </td>
+                        <td class="p-3 text-slate-600">${log.fuel_storage || '-'}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeStyle}">
+                                ${tx || '-'}
+                            </span>
+                        </td>
+                        <td class="p-3 font-medium text-slate-800">${log.no_unit || '-'}</td>
+                        <td class="p-3 text-slate-600 italic">${keteranganVal}</td>
+                        <td class="p-3 text-slate-600">${log.material_type || '-'}</td>
+                        <td class="p-3 font-semibold text-slate-900">${log.fuel_amount || 0} L</td>
+                        <td class="p-3 text-slate-600 font-mono text-[11px]">${log.hm_fuel_unit || '-'}</td>
+                        <td class="p-3 text-slate-500">${log.no_voucher || '-'}</td>
+                        <td class="p-3 text-slate-700">${log.pic_name || '-'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="openModal('${log.evidence_hm_url}', '${log.evidence_liter_url}')" class="text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 text-[11px] font-medium px-2.5 py-1 rounded transition border border-slate-200">
+                                Lihat Foto
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="openEditModal('${log.id}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 text-[11px] font-medium px-2.5 py-1 rounded transition border border-blue-200">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        return {
-            "No": index + 1,
-            "Tanggal": tglStr,
-            "Jam": jamStr,
-            "Shift": log.shift || '-',
-            "Unit": log.no_unit || '-',
-            "HM/KM": log.hm_fuel_truck || '-',
-            "Liter": log.fuel_amount || 0,
-            "Fuel Storage": log.fuel_storage || '-',
-            "Supply": "",
-            "Transfer": "",
-            "Driver": log.pic_name || '-',
-            "Fuelman": log.pic_name || '-',
-            "Workgroup": log.material_type || '-',
-            "Bulan": bulanStr
-        };
-    });
+        // Pagination Handler Functions
+        function changeRowsPerPage() {
+            rowsPerPage = parseInt(document.getElementById('rowsPerPageSelect').value);
+            currentPage = 1;
+            renderTable();
+        }
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    XLSX.utils.book_append_sheet(wb, ws, "Fuel Logs");
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        }
 
-    const siteFilter = document.getElementById('filterSite').value;
-    XLSX.writeFile(wb, `Fuel_Monitoring_Report_${siteFilter}.xlsx`);
-}
+        function nextPage() {
+            const totalPages = Math.ceil(currentlyFilteredLogs.length / rowsPerPage) || 1;
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        }
+
+        // Modal Evidence Handler dengan Google Drive Thumbnail API (Dibersihkan dari Proteksi CORS)
+        function openModal(urlHM, urlLiter) {
+            function convertDriveLink(url) {
+                if (!url || url === 'null' || url === 'undefined') return '';
+                const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+                }
+                return url;
+            }
+
+            document.getElementById('modalImgHM').src = convertDriveLink(urlHM);
+            document.getElementById('modalImgLiter').src = convertDriveLink(urlLiter);
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        // Edit Modal Handler
+        function openEditModal(id) {
+            const log = allLogs.find(item => item.id == id);
+            if (!log) return;
+
+            document.getElementById('editId').value = log.id;
+            document.getElementById('editSiteName').value = log.site_name || 'SSB';
+            document.getElementById('editShift').value = log.shift || 'Day';
+            document.getElementById('editFuelStorage').value = log.fuel_storage || '';
+            document.getElementById('editReceiptIssued').value = log.receipt_issued || 'ISSUED';
+            document.getElementById('editNoUnit').value = log.no_unit || '';
+            document.getElementById('editKeteranganUnit').value = log.unit_remark || '';
+            document.getElementById('editMaterialType').value = log.material_type || '';
+            document.getElementById('editFuelAmount').value = log.fuel_amount || 0;
+            document.getElementById('editHmFuelTruck').value = log.hm_fuel_unit || '';
+            document.getElementById('editNoVoucher').value = log.no_voucher || '';
+            document.getElementById('editPicName').value = log.pic_name || '';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        async function handleUpdate(e) {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const updatedData = {
+                site_name: document.getElementById('editSiteName').value,
+                shift: document.getElementById('editShift').value,
+                fuel_storage: document.getElementById('editFuelStorage').value,
+                receipt_issued: document.getElementById('editReceiptIssued').value,
+                no_unit: document.getElementById('editNoUnit').value,
+                unit_remark: document.getElementById('editKeteranganUnit').value,
+                material_type: document.getElementById('editMaterialType').value,
+                fuel_amount: parseFloat(document.getElementById('editFuelAmount').value) || 0,
+                hm_fuel_unit: document.getElementById('editHmFuelTruck').value,
+                no_voucher: document.getElementById('editNoVoucher').value,
+                pic_name: document.getElementById('editPicName').value
+            };
+
+            const { error } = await supabaseClient
+                .from('fuel_logs')
+                .update(updatedData)
+                .eq('id', id);
+
+            if (error) {
+                alert("Gagal memperbarui data: " + error.message);
+                return;
+            }
+
+            alert("Data berhasil diperbarui!");
+            closeEditModal();
+            fetchLogs();
+        }
+
+        // Export Excel dengan Penyesuaian Tanggal Produksi & Shift Sesuai Aturan Site
+        function exportToExcel() {
+            if (currentlyFilteredLogs.length === 0) {
+                alert("Tidak ada data untuk diexport!");
+                return;
+            }
+
+            const excelData = currentlyFilteredLogs.map((log, index) => {
+                let tglStr = '-';
+                let jamStr = '-';
+                let bulanStr = '-';
+                let shiftStr = log.shift || '-';
+
+                if (log.created_at) {
+                    const d = new Date(log.created_at);
+                    let hour = d.getHours();
+
+                    if (hour < 7) {
+                        d.setDate(d.getDate() - 1);
+                        shiftStr = 'Night';
+                    } else if (hour >= 19) {
+                        shiftStr = 'Night';
+                    } else {
+                        shiftStr = 'Day';
+                    }
+
+                    tglStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/\./g, '-');
+                    
+                    const dOriginal = new Date(log.created_at);
+                    jamStr = dOriginal.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    bulanStr = d.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase();
+                }
+
+                return {
+                    "No": index + 1,
+                    "Tanggal": tglStr,
+                    "Jam": jamStr,
+                    "Shift": shiftStr,
+                    "Unit": log.no_unit || '-',
+                    "HM/KM": log.hm_fuel_unit || '-',
+                    "Liter": log.fuel_amount || 0,
+                    "Fuel Storage": log.fuel_storage || '-',
+                    "Supply": "",
+                    "Transfer": "",
+                    "Driver": log.pic_name || '-',
+                    "Fuelman": log.pic_name || '-',
+                    "Workgroup": log.material_type || '-',
+                    "Bulan": bulanStr
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Fuel Logs");
+
+            const siteFilter = document.getElementById('filterSite').value;
+            const fileName = `Fuel_Logs_${siteFilter}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // Event Listener Filter Perubahan
+        document.getElementById('filterSite').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('filterShift').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('filterTx').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('startDate').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('endDate').addEventListener('change', () => { currentPage = 1; renderTable(); });
+
+        // Initial Load
+        setDefaultDate();
+        fetchLogs();
+
+        // Realtime polling setiap 30 detik
+        setInterval(fetchLogs, 30000);
+    </script>
+</body>
+</html>
