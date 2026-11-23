@@ -32,18 +32,21 @@ function switchSection(sectionName) {
     const navStock = document.getElementById('navStock');
     const pageTitle = document.getElementById('pageTitle');
 
+    const activeClass = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-md bg-[#0000FF] text-white font-semibold transition text-left border border-[#00FFFF]/40";
+    const inactiveClass = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-md text-slate-200 hover:bg-[#0000FF]/25 hover:text-[#00FFFF] font-medium transition text-left border border-transparent hover:border-[#00FFFF]/30";
+
     if (sectionName === 'stock') {
         dashEl.classList.add('hidden');
         stockEl.classList.remove('hidden');
-        navStock.className = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-lg bg-slate-800 text-white font-semibold transition text-left";
-        navDash.className = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/70 hover:text-white font-medium transition text-left";
+        navStock.className = activeClass;
+        navDash.className = inactiveClass;
         pageTitle.innerText = "Ringkasan Stok Site";
         renderStockSummary();
     } else {
         stockEl.classList.add('hidden');
         dashEl.classList.remove('hidden');
-        navDash.className = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-lg bg-slate-800 text-white font-semibold transition text-left";
-        navStock.className = "w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/70 hover:text-white font-medium transition text-left";
+        navDash.className = activeClass;
+        navStock.className = inactiveClass;
         pageTitle.innerText = "Fuel Monitoring System";
     }
 
@@ -68,15 +71,15 @@ function renderStockSummary() {
         const sisa = Math.max(0, receipt - out);
 
         return `
-            <div class="p-4 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2">
+            <div class="p-4 rounded-md border border-slate-200 border-t-[3px] border-t-[#0000FF] bg-[#f4f6fa] space-y-2">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-900">SITE ${site}</span>
-                    <span class="text-[11px] text-slate-500">${siteRows.length} trx</span>
+                    <span class="text-xs font-extrabold text-slate-950">SITE ${site}</span>
+                    <span class="text-[11px] font-semibold text-[#0000FF]">${siteRows.length} trx</span>
                 </div>
-                <p class="text-xl font-bold text-cyan-700">${sisa.toLocaleString('id-ID')} L</p>
-                <div class="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-200/70">
+                <p class="text-xl font-extrabold text-[#0000FF]">${sisa.toLocaleString('id-ID')} L</p>
+                <div class="text-[11px] text-slate-600 flex justify-between pt-1.5 border-t border-slate-200">
                     <span>In: ${receipt.toLocaleString('id-ID')} L</span>
-                    <span>Out: ${out.toLocaleString('id-ID')} L</span>
+                    <span class="text-[#FF0000] font-semibold">Out: ${out.toLocaleString('id-ID')} L</span>
                 </div>
             </div>
         `;
@@ -192,24 +195,24 @@ function renderTable() {
         totalVolume = currentlyFilteredLogs
             .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'ISSUED')
             .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
-        txAmount.className = "text-2xl font-semibold text-rose-600";
+        txAmount.className = "text-2xl font-extrabold text-[#FF0000]";
     } else if (filterTxVal === 'RECEIPT') {
         txLabel.innerText = "Total Solar Receipt";
         totalVolume = currentlyFilteredLogs
             .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === 'RECEIPT')
             .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
-        txAmount.className = "text-2xl font-semibold text-emerald-600";
+        txAmount.className = "text-2xl font-extrabold text-[#0000FF]";
     } else if (filterTxVal.includes('TRANSFER')) {
         txLabel.innerText = `Total ${filterTxVal}`;
         totalVolume = currentlyFilteredLogs
             .filter(i => (i.receipt_issued || '').toString().trim().toUpperCase() === filterTxVal)
             .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
-        txAmount.className = "text-2xl font-semibold text-sky-600";
+        txAmount.className = "text-2xl font-extrabold text-[#0000FF]";
     } else {
         txLabel.innerText = "Total Volume Solar";
         totalVolume = currentlyFilteredLogs
             .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
-        txAmount.className = "text-2xl font-semibold text-slate-900";
+        txAmount.className = "text-2xl font-extrabold text-[#0000FF]";
     }
     txAmount.innerText = `${totalVolume.toLocaleString('id-ID')} L`;
 
@@ -224,7 +227,7 @@ function renderTable() {
 
     const totalOutSite = siteLogsForStock
         .filter(i => ['ISSUED', 'TRANSFER INTERN', 'TRANSFER SITE'].includes((i.receipt_issued || '').toString().trim().toUpperCase()))
-        .reduce((acc, curr) => acc + (parseFloat(curr.fuel_amount) || 0), 0);
+        .reduce((acc, curr) => acc + (parseFloat(c.fuel_amount) || 0), 0);
 
     const remainingFuel = Math.max(0, totalReceiptSite - totalOutSite);
 
@@ -262,7 +265,7 @@ function renderTable() {
 
     // Render Baris Tabel
     if (paginatedLogs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-500 font-medium">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
         return;
     }
 
@@ -271,47 +274,47 @@ function renderTable() {
         const timeStr = dateObj.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         
         const tx = log.receipt_issued ? log.receipt_issued.toString().trim().toUpperCase() : '';
-        let badgeStyle = "bg-slate-100 text-slate-600";
-        if (tx === 'ISSUED') badgeStyle = "bg-rose-50 text-rose-700 border border-rose-200";
-        if (tx === 'RECEIPT') badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-200";
-        if (tx.includes('TRANSFER')) badgeStyle = "bg-sky-50 text-sky-700 border border-sky-200";
+        let badgeStyle = "bg-slate-100 text-slate-800 border border-slate-300";
+        if (tx === 'ISSUED') badgeStyle = "bg-[#FF0000]/10 text-[#FF0000] border border-[#FF0000]/40";
+        if (tx === 'RECEIPT') badgeStyle = "bg-[#0000FF]/10 text-[#0000FF] border border-[#0000FF]/40";
+        if (tx.includes('TRANSFER')) badgeStyle = "bg-[#00FFFF]/20 text-slate-950 border border-[#0000FF]/40";
 
         const shiftVal = log.shift || '-';
-        let shiftStyle = "bg-slate-100 text-slate-600";
-        if (shiftVal.toLowerCase() === 'day') shiftStyle = "bg-amber-50 text-amber-700 border border-amber-200";
-        if (shiftVal.toLowerCase() === 'night') shiftStyle = "bg-indigo-50 text-indigo-700 border border-indigo-200";
+        let shiftStyle = "bg-slate-100 text-slate-800 border border-slate-300";
+        if (shiftVal.toLowerCase() === 'day') shiftStyle = "bg-[#00FFFF]/25 text-slate-950 border border-[#0000FF]/35";
+        if (shiftVal.toLowerCase() === 'night') shiftStyle = "bg-[#070b24] text-[#00FFFF] border border-[#0000FF]";
 
         const keteranganVal = log.unit_remark ? log.unit_remark : '-';
 
         return `
-            <tr class="hover:bg-slate-50/80 transition">
-                <td class="p-3 text-slate-500 whitespace-nowrap">${timeStr}</td>
-                <td class="p-3 font-semibold text-slate-900">${log.site_name || '-'}</td>
+            <tr class="hover:bg-[#f4f6fa] transition">
+                <td class="p-3 text-slate-600 whitespace-nowrap">${timeStr}</td>
+                <td class="p-3 font-extrabold text-slate-950">${log.site_name || '-'}</td>
                 <td class="p-3">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-medium ${shiftStyle}">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${shiftStyle}">
                         ${shiftVal}
                     </span>
                 </td>
-                <td class="p-3 text-slate-600">${log.fuel_storage || '-'}</td>
+                <td class="p-3 text-slate-700">${log.fuel_storage || '-'}</td>
                 <td class="p-3">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeStyle}">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${badgeStyle}">
                         ${tx || '-'}
                     </span>
                 </td>
-                <td class="p-3 font-medium text-slate-800">${log.no_unit || '-'}</td>
+                <td class="p-3 font-bold text-slate-900">${log.no_unit || '-'}</td>
                 <td class="p-3 text-slate-600 italic">${keteranganVal}</td>
-                <td class="p-3 text-slate-600">${log.material_type || '-'}</td>
-                <td class="p-3 font-semibold text-slate-900">${log.fuel_amount || 0} L</td>
-                <td class="p-3 text-slate-600 font-mono text-[11px]">${log.hm_fuel_unit || '-'}</td>
-                <td class="p-3 text-slate-500">${log.no_voucher || '-'}</td>
-                <td class="p-3 text-slate-700">${log.pic_name || '-'}</td>
+                <td class="p-3 text-slate-700">${log.material_type || '-'}</td>
+                <td class="p-3 font-extrabold text-[#0000FF]">${log.fuel_amount || 0} L</td>
+                <td class="p-3 text-slate-700 font-mono text-[11px]">${log.hm_fuel_unit || '-'}</td>
+                <td class="p-3 text-slate-600">${log.no_voucher || '-'}</td>
+                <td class="p-3 text-slate-800 font-medium">${log.pic_name || '-'}</td>
                 <td class="p-3 text-center">
-                    <button onclick="openModal('${log.evidence_hm_url}', '${log.evidence_liter_url}')" class="text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 text-[11px] font-medium px-2.5 py-1 rounded transition border border-slate-200">
+                    <button onclick="openModal('${log.evidence_hm_url}', '${log.evidence_liter_url}')" class="text-slate-900 hover:bg-[#00FFFF]/30 bg-[#f4f6fa] text-[11px] font-bold px-2.5 py-1 rounded transition border border-[#0000FF]/40">
                         Lihat Foto
                     </button>
                 </td>
                 <td class="p-3 text-center">
-                    <button onclick="openEditModal('${log.id}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 text-[11px] font-medium px-2.5 py-1 rounded transition border border-blue-200">
+                    <button onclick="openEditModal('${log.id}')" class="text-[#0000FF] hover:bg-[#0000FF] hover:text-white bg-[#0000FF]/10 text-[11px] font-bold px-2.5 py-1 rounded transition border border-[#0000FF]/40">
                         Edit
                     </button>
                 </td>
